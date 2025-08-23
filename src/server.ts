@@ -5,6 +5,11 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import winston from 'winston';
 import { DatabaseService } from './services/database';
+import { WorkspaceManager } from './services/workspace';
+import { LinterRunner } from './services/linter';
+import { CacheService } from './services/cache';
+import { JobManager } from './services/jobManager';
+import { createLinterRouter } from './routes/linter';
 import { createErrorResponse } from './types/errors';
 
 // Initialize logger
@@ -25,11 +30,15 @@ const logger = winston.createLogger({
   ]
 });
 
-// Initialize database
+// Initialize services
 const db = new DatabaseService();
+const workspaceManager = new WorkspaceManager();
+const linterRunner = new LinterRunner(workspaceManager);
+const cacheService = new CacheService(db);
+const jobManager = new JobManager(db, workspaceManager, linterRunner, cacheService);
 
 // Create Express app
-const app = express();
+const app: express.Application = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -90,9 +99,6 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
 });
 
 app.use(limiter);
@@ -139,7 +145,7 @@ app.use((req, res, next) => {
       cache_hit: (req as any).cacheHit || false,
       linter_type: (req as any).linterType,
       format: (req as any).format,
-      error_type: res.statusCode >= 400 ? 'client_error' : undefined,
+      error_type: res.statusCode >= 400 ? 'client_error' : undefined as any,
     }).catch(err => {
       logger.warn('Failed to record metrics', { error: err.message });
     });
@@ -194,6 +200,9 @@ app.get('/', (req, res) => {
     documentation: 'https://github.com/your-org/super-linter-api',
   });
 });
+
+// Mount API routes
+app.use(createLinterRouter(workspaceManager, linterRunner, cacheService, db, jobManager));
 
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

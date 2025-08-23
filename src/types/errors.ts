@@ -1,5 +1,7 @@
 export type ErrorCode = 
   | 'VALIDATION_ERROR'
+  | 'INVALID_PARAMETERS'
+  | 'INVALID_CONTENT_ENCODING'
   | 'LINTER_NOT_FOUND'
   | 'LINTER_EXECUTION_FAILED'
   | 'TIMEOUT_ERROR'
@@ -12,7 +14,8 @@ export type ErrorCode =
   | 'JOB_NOT_FOUND'
   | 'JOB_ALREADY_CANCELLED'
   | 'INTERNAL_SERVER_ERROR'
-  | 'SERVICE_UNAVAILABLE';
+  | 'SERVICE_UNAVAILABLE'
+  | 'NOT_FOUND';
 
 export interface ApiError extends Error {
   code: ErrorCode;

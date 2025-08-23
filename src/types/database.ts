@@ -11,15 +11,21 @@ export interface LintResult {
   expires_at: string;
 }
 
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
 export interface LintJob {
   id: string;
-  content_hash: string;
+  job_id: string;
   linter_type: string;
   format: string;
+  content?: string;
+  archive?: string;
+  filename?: string;
   options: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: JobStatus;
   result?: string;
   error_message?: string;
+  execution_time_ms?: number;
   created_at: string;
   started_at?: string;
   completed_at?: string;

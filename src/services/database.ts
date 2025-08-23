@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
-import { LintResult, LintJob, ApiMetric } from '../types/database';
+import { LintResult, LintJob, ApiMetric, JobStatus } from '../types/database';
 
 export class DatabaseService {
   private dbPath: string;
@@ -11,8 +11,52 @@ export class DatabaseService {
 
   private query(sql: string, params: any[] = []): any[] {
     try {
-      const paramStr = params.length > 0 ? ` -cmd ".param ${params.map((p, i) => `set $${i+1} '${p}'`).join(' ')}"` : '';
-      const result = execSync(`sqlite3${paramStr} "${this.dbPath}" "${sql}"`, { 
+      // For complex JSON queries, we need to be very careful with escaping
+      let processedSql = sql;
+      
+      // Replace ? placeholders with properly escaped parameters
+      params.forEach((param) => {
+        const placeholder = '?';
+        if (processedSql.includes(placeholder)) {
+          let escapedParam: string;
+          
+          if (param === null || param === undefined) {
+            escapedParam = 'NULL';
+          } else if (typeof param === 'string') {
+            // For SQLite command line, we need to escape very carefully
+            // Replace single quotes with double single quotes, handle special chars
+            const escaped = param
+              .replace(/'/g, "''")
+              .replace(/\\/g, '\\\\')
+              .replace(/\n/g, '\\n')
+              .replace(/\r/g, '\\r')
+              .replace(/\t/g, '\\t')
+              .replace(/"/g, '\\"')
+              .replace(/\x00/g, '\\0');
+            escapedParam = `'${escaped}'`;
+          } else if (typeof param === 'number') {
+            escapedParam = param.toString();
+          } else if (typeof param === 'boolean') {
+            escapedParam = param ? '1' : '0';
+          } else {
+            // For objects, stringify and escape
+            const jsonStr = JSON.stringify(param);
+            const escaped = jsonStr
+              .replace(/'/g, "''")
+              .replace(/\\/g, '\\\\')
+              .replace(/\n/g, '\\n')
+              .replace(/\r/g, '\\r')
+              .replace(/\t/g, '\\t')
+              .replace(/"/g, '\\"')
+              .replace(/\x00/g, '\\0');
+            escapedParam = `'${escaped}'`;
+          }
+          
+          processedSql = processedSql.replace(placeholder, escapedParam);
+        }
+      });
+      
+      const result = execSync(`sqlite3 "${this.dbPath}" "${processedSql}"`, { 
         encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024 // 10MB buffer
       });
@@ -73,82 +117,119 @@ export class DatabaseService {
   async storeCachedResult(result: Omit<LintResult, 'id'>): Promise<string> {
     const id = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    this.exec(`
+    const sql = `
       INSERT INTO lint_results (
         id, content_hash, linter_type, options_hash, 
         result, format, status, error_message, expires_at
-      ) VALUES (
-        '${id}', '${result.content_hash}', '${result.linter_type}', '${result.options_hash}',
-        '${result.result.replace(/'/g, "''")}', '${result.format}', '${result.status}', 
-        ${result.error_message ? `'${result.error_message.replace(/'/g, "''")}'` : 'NULL'}, 
-        '${result.expires_at}'
-      );
-    `);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `;
+    
+    this.query(sql, [
+      id,
+      result.content_hash,
+      result.linter_type,
+      result.options_hash,
+      result.result,
+      result.format,
+      result.status,
+      result.error_message,
+      result.expires_at
+    ]);
     
     return id;
   }
 
   // Job operations
-  async createJob(job: Omit<LintJob, 'id' | 'created_at'>): Promise<string> {
-    const id = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  async createJob(job: Omit<LintJob, 'id'>): Promise<string> {
+    const id = `${job.job_id}`;
     
-    this.exec(`
+    // Use parameterized INSERT
+    const sql = `
       INSERT INTO lint_jobs (
-        id, content_hash, linter_type, format, options, status
-      ) VALUES (
-        '${id}', '${job.content_hash}', '${job.linter_type}', '${job.format}',
-        '${job.options.replace(/'/g, "''")}', '${job.status}'
-      );
-    `);
+        id, job_id, linter_type, format, content, archive, filename, options, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `;
+    
+    const params = [
+      id,
+      job.job_id,
+      job.linter_type,
+      job.format,
+      job.content || null,
+      job.archive || null,
+      job.filename || null,
+      job.options,
+      job.status,
+      job.created_at
+    ];
+    
+    this.query(sql, params);
     
     return id;
   }
 
-  async getJob(id: string): Promise<LintJob | null> {
+  async getJob(jobId: string): Promise<LintJob | null> {
     const sql = `
       SELECT json_object(
         'id', id,
-        'content_hash', content_hash,
+        'job_id', job_id,
         'linter_type', linter_type,
         'format', format,
+        'content', content,
+        'archive', archive,
+        'filename', filename,
         'options', options,
         'status', status,
         'result', result,
         'error_message', error_message,
+        'execution_time_ms', execution_time_ms,
         'created_at', created_at,
         'started_at', started_at,
         'completed_at', completed_at
       ) as json_result
-      FROM lint_jobs WHERE id = ? LIMIT 1;
+      FROM lint_jobs WHERE job_id = ? LIMIT 1;
     `;
     
-    const results = this.query(sql, [id]);
+    const results = this.query(sql, [jobId]);
     if (results.length === 0) return null;
     
     return JSON.parse(results[0].json_result);
   }
 
-  async updateJobStatus(id: string, status: LintJob['status'], result?: string, errorMessage?: string): Promise<void> {
+  async updateJobStatus(jobId: string, status: JobStatus, result?: string, errorMessage?: string, executionTimeMs?: number): Promise<void> {
     const now = new Date().toISOString();
-    let sql = `UPDATE lint_jobs SET status = '${status}'`;
+    
+    // Build the SET clause parts
+    const setParts = ['status = ?'];
+    const params: any[] = [status];
     
     if (status === 'running') {
-      sql += `, started_at = '${now}'`;
-    } else if (status === 'completed' || status === 'failed') {
-      sql += `, completed_at = '${now}'`;
+      setParts.push('started_at = ?');
+      params.push(now);
+    } else if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+      setParts.push('completed_at = ?');
+      params.push(now);
     }
     
     if (result) {
-      sql += `, result = '${result.replace(/'/g, "''")}'`;
+      setParts.push('result = ?');
+      params.push(result);
     }
     
     if (errorMessage) {
-      sql += `, error_message = '${errorMessage.replace(/'/g, "''")}'`;
+      setParts.push('error_message = ?');
+      params.push(errorMessage);
     }
     
-    sql += ` WHERE id = '${id}';`;
+    if (executionTimeMs !== undefined) {
+      setParts.push('execution_time_ms = ?');
+      params.push(executionTimeMs);
+    }
     
-    this.exec(sql);
+    const sql = `UPDATE lint_jobs SET ${setParts.join(', ')} WHERE job_id = ?;`;
+    params.push(jobId);
+    
+    this.query(sql, params);
   }
 
   async getPendingJobs(limit = 10): Promise<LintJob[]> {
@@ -176,18 +257,24 @@ export class DatabaseService {
   async recordMetric(metric: Omit<ApiMetric, 'id' | 'created_at'>): Promise<void> {
     const id = `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    this.exec(`
+    const sql = `
       INSERT INTO api_metrics (
         id, endpoint, method, status_code, response_time_ms, 
         cache_hit, linter_type, format, error_type
-      ) VALUES (
-        '${id}', '${metric.endpoint}', '${metric.method}', ${metric.status_code}, 
-        ${metric.response_time_ms}, ${metric.cache_hit ? 1 : 0},
-        ${metric.linter_type ? `'${metric.linter_type}'` : 'NULL'},
-        ${metric.format ? `'${metric.format}'` : 'NULL'},
-        ${metric.error_type ? `'${metric.error_type}'` : 'NULL'}
-      );
-    `);
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `;
+    
+    this.query(sql, [
+      id,
+      metric.endpoint,
+      metric.method,
+      metric.status_code,
+      metric.response_time_ms,
+      metric.cache_hit ? 1 : 0,
+      metric.linter_type,
+      metric.format,
+      metric.error_type
+    ]);
   }
 
   // Statistics queries
@@ -196,9 +283,14 @@ export class DatabaseService {
     return this.query(sql);
   }
 
-  async getJobStats(): Promise<any> {
-    const sql = 'SELECT * FROM job_stats;';
-    return this.query(sql);
+  async getJobStats(): Promise<Array<{status: string, count: number}>> {
+    const sql = `
+      SELECT status, COUNT(*) as count 
+      FROM lint_jobs 
+      GROUP BY status;
+    `;
+    const results = this.query(sql);
+    return results.map((row: any) => ({ status: row[0], count: parseInt(row[1]) }));
   }
 
   async getRecentMetrics(): Promise<any> {
