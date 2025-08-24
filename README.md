@@ -11,11 +11,13 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ### Comprehensive Linting Support
 
-- **Complete Integration**: Built on Super-linter base image with all 50+ linters pre-installed
+- **Complete Integration**: Built on Super-linter base image with 50+ linters pre-installed (18 commonly used ones exposed via API)
 - **Production Ready**: Single Docker image that includes all supported linters
 - **Dual Operation**: Works as standalone API or embedded in Super-linter workflows
 
 ### Supported Linters
+
+This API implements **18 commonly used linters** from Super-linter's 50+ available tools:
 
 - **JavaScript/TypeScript**: ESLint, Prettier, JSHint
 - **Python**: Pylint, Flake8, Black, isort, Bandit, MyPy
@@ -24,13 +26,9 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 - **Ruby**: RuboCop
 - **Docker**: Hadolint
 - **YAML**: yamllint
+- **JSON**: jsonlint
 - **Markdown**: markdownlint
 - **CSS**: stylelint
-- **PHP**: PHP_CodeSniffer, PHPStan
-- **Rust**: rustfmt, Clippy
-- **Kotlin**: ktlint
-- **HTML**: HTMLHint
-- **And more!**
 
 ### API Features
 
@@ -101,7 +99,7 @@ pnpm start
 ### Docker Installation
 
 ```bash
-# Build the Super-linter API image (includes all 50+ linters)
+# Build the Super-linter API image (includes 50+ linters, exposes 18 commonly used ones)
 docker build -t super-linter-api .
 ```
 
@@ -283,7 +281,7 @@ tests/
 └── utils/           # Test utilities
 
 docker/
-└── Dockerfile  # Super-linter based image with all 50+ linters
+└── Dockerfile  # Super-linter based image with 50+ linters (18 exposed)
 ```
 
 ## 🧪 Testing
@@ -318,7 +316,7 @@ pnpm test src/services/linter.test.ts
 # Build (requires ~6GB disk space)
 docker build -t super-linter-api .
 
-# Run with all 50+ linters
+# Run with 18 exposed linters (50+ available in base image)
 docker run -p 3000:3000 super-linter-api
 ```
 
@@ -379,6 +377,53 @@ This project is built on top of and inspired by the excellent work of:
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📋 Future Enhancements (TODO)
+
+### Additional Super-linter Languages Not Yet Implemented
+
+This API currently implements the most commonly used linters from Super-linter. The following languages and tools are available in Super-linter but not yet implemented in this API:
+
+#### Infrastructure & DevOps
+- **Ansible**: `ansible-lint`
+- **AWS CloudFormation**: `cfn-lint`, `checkov`, `trivy`
+- **Azure ARM Templates**: `arm-ttk`, `checkov`, `trivy`
+- **Kubernetes**: `checkov`, `trivy`
+- **Terraform**: `terraform validate`, `tflint`, `checkov`, `trivy`
+- **Helm Charts**: `checkov`
+
+#### Programming Languages
+- **C#/.NET**: `dotnet format`
+- **Clojure**: `clj-kondo`
+- **CoffeeScript**: `coffeelint`
+- **Dart**: `dart analyze`
+- **Groovy**: `npm-groovy-lint`
+- **Lua**: `luacheck`
+- **Perl**: `perlcritic`
+- **PowerShell**: `PSScriptAnalyzer`
+- **R**: `lintr`
+- **Scala**: `scalastyle`
+
+#### Specialized Tools
+- **Amazon States Language**: ASL Validator
+- **Copy/paste detection**: `jscpd`
+- **Commit messages**: `commitlint`
+- **EditorConfig**: `editorconfig-checker`
+- **Environment files**: `dotenv-linter`
+- **GitHub Actions**: `actionlint`, `zizmor`
+- **Git merge conflicts**: Built-in checker
+- **GoReleaser**: GoReleaser validation
+- **Jupyter Notebooks**: `nbqa`
+- **LaTeX**: `chktex`
+- **Licenses**: `trivy`
+- **Natural language**: `textlint`
+- **OpenAPI**: `spectral`
+- **Protocol Buffers**: `protolint`
+- **SQL**: `sqlfluff`
+- **TOML**: `taplo`
+- **XML**: `xmllint`
+
+> **Note**: These linters are available in the Super-linter base image but not yet exposed through this API. Contributions are welcome to add support for any of these tools!
 
 ## 📞 Support
 

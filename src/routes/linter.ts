@@ -1009,23 +1009,33 @@ function safeParseCachedResult(cached: any): any {
 function getDefaultFilename(linter: LinterType): string {
   switch (linter) {
     case 'eslint':
+    case 'prettier':
+    case 'jshint':
       return 'code.js';
     case 'pylint':
     case 'black':
     case 'flake8':
+    case 'isort':
+    case 'bandit':
+    case 'mypy':
       return 'code.py';
     case 'rubocop':
       return 'code.rb';
     case 'shellcheck':
       return 'code.sh';
-    case 'phpstan':
-      return 'code.php';
     case 'golangci-lint':
+    case 'gofmt':
       return 'code.go';
-    case 'ktlint':
-      return 'code.kt';
-    case 'swiftlint':
-      return 'code.swift';
+    case 'hadolint':
+      return 'Dockerfile';
+    case 'yamllint':
+      return 'code.yml';
+    case 'jsonlint':
+      return 'code.json';
+    case 'markdownlint':
+      return 'code.md';
+    case 'stylelint':
+      return 'code.css';
     default:
       return 'code.txt';
   }

@@ -157,7 +157,7 @@ export class WorkspaceManager {
   private async createSingleFileWorkspace(
     content: Buffer,
     workspacePath: string,
-    workspaceId: string
+    _workspaceId: string
   ): Promise<WorkspaceInfo> {
     if (content.length > this.maxFileSize) {
       throw new ContentTooLargeError('File too large', this.maxFileSize, content.length);
@@ -442,7 +442,7 @@ export class WorkspaceManager {
               await this.cleanupWorkspace(workspacePath);
               cleanedCount++;
             }
-          } catch (error) {
+          } catch {
             logger.debug(`Failed to check workspace age: ${entry.name}`);
           }
         }

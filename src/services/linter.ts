@@ -335,7 +335,7 @@ export class LinterRunner {
     return trimmed.startsWith('{') || trimmed.startsWith('[');
   }
 
-  private extractIssues(parsedOutput: any, config: LinterConfig): any[] {
+  private extractIssues(parsedOutput: any, _config: LinterConfig): any[] {
     if (!parsedOutput || typeof parsedOutput !== 'object') {
       return [];
     }

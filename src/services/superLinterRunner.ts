@@ -123,7 +123,7 @@ const SUPERLINTER_CONFIGS = {
 
   // JSON
   jsonlint: {
-    executable: 'jsonlint-php', // or 'jsonlint' depending on availability
+    executable: 'jsonlint',
     args: [],
     outputFormat: 'text',
     extensions: ['.json'],
@@ -236,8 +236,6 @@ export class SuperLinterRunner extends LinterRunner {
         issues,
       };
     } catch (error) {
-      const execution_time_ms = Date.now() - startTime;
-
       if (error instanceof TimeoutError) {
         throw error;
       }

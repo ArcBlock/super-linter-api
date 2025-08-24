@@ -3,35 +3,23 @@ import { LinterType, OutputFormat } from '../types/api';
 
 export const LinterTypeSchema = z.enum([
   'eslint',
+  'prettier',
   'jshint',
-  'standard',
   'pylint',
   'flake8',
   'black',
   'isort',
-  'rubocop',
-  'standardrb',
+  'bandit',
+  'mypy',
+  'shellcheck',
   'golangci-lint',
   'gofmt',
-  'goimports',
-  'rustfmt',
-  'clippy',
-  'ktlint',
-  'detekt',
-  'swiftlint',
-  'shellcheck',
+  'rubocop',
   'hadolint',
   'yamllint',
   'jsonlint',
   'markdownlint',
-  'htmlhint',
   'stylelint',
-  'phpcs',
-  'phpstan',
-  'cppcheck',
-  'checkstyle',
-  'pmd',
-  'spotbugs',
 ] as const);
 
 export const OutputFormatSchema = z.enum(['json', 'text', 'sarif'] as const);
@@ -200,37 +188,23 @@ export function validateLinterSupportsFormat(linter: LinterType, format: OutputF
   // Some linters don't support all formats
   const formatSupport: Record<LinterType, OutputFormat[]> = {
     eslint: ['json', 'text'],
+    prettier: ['text'],
+    jshint: ['json', 'text'],
     pylint: ['json', 'text'],
-    rubocop: ['json', 'text'],
-    'golangci-lint': ['json', 'text'],
+    flake8: ['text'],
+    black: ['text'],
+    isort: ['text'],
+    bandit: ['json', 'text'],
+    mypy: ['text'],
     shellcheck: ['json', 'text'],
+    'golangci-lint': ['json', 'text'],
+    gofmt: ['text'],
+    rubocop: ['json', 'text'],
     hadolint: ['json', 'text'],
     yamllint: ['text'],
-    // Add more specific format support as needed
-    // Default to all formats for others
-    jshint: ['json', 'text', 'sarif'],
-    standard: ['json', 'text', 'sarif'],
-    flake8: ['json', 'text', 'sarif'],
-    black: ['json', 'text', 'sarif'],
-    isort: ['json', 'text', 'sarif'],
-    standardrb: ['json', 'text', 'sarif'],
-    gofmt: ['json', 'text', 'sarif'],
-    goimports: ['json', 'text', 'sarif'],
-    rustfmt: ['json', 'text', 'sarif'],
-    clippy: ['json', 'text', 'sarif'],
-    ktlint: ['json', 'text', 'sarif'],
-    detekt: ['json', 'text', 'sarif'],
-    swiftlint: ['json', 'text', 'sarif'],
-    jsonlint: ['json', 'text', 'sarif'],
-    markdownlint: ['json', 'text', 'sarif'],
-    htmlhint: ['json', 'text', 'sarif'],
-    stylelint: ['json', 'text', 'sarif'],
-    phpcs: ['json', 'text', 'sarif'],
-    phpstan: ['json', 'text', 'sarif'],
-    cppcheck: ['json', 'text', 'sarif'],
-    checkstyle: ['json', 'text', 'sarif'],
-    pmd: ['json', 'text', 'sarif'],
-    spotbugs: ['json', 'text', 'sarif'],
+    jsonlint: ['text'],
+    markdownlint: ['json', 'text'],
+    stylelint: ['json', 'text'],
   };
 
   return formatSupport[linter]?.includes(format) ?? true;
@@ -244,7 +218,7 @@ export function validateContentEncoding(encoded: string): { valid: boolean; erro
       return { valid: true };
     }
     return { valid: false, error: 'Invalid base64 encoding' };
-  } catch (error) {
+  } catch {
     return { valid: false, error: 'Failed to decode base64 content' };
   }
 }
@@ -269,13 +243,13 @@ export const validationMiddleware = {
       }
 
       next();
-    } catch (validationError: any) {
+    } catch (validationError: unknown) {
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid parameters',
-          details: validationError.errors || validationError.message,
+          details: (validationError as any).errors || (validationError as any).message,
           timestamp: new Date().toISOString(),
         },
       });
@@ -287,13 +261,13 @@ export const validationMiddleware = {
       const result = LintRequestSchema.parse(req.body);
       req.validatedBody = result;
       next();
-    } catch (error: any) {
+    } catch (error: unknown) {
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid request body',
-          details: error.errors || error.message,
+          details: (error as any).errors || (error as any).message,
           timestamp: new Date().toISOString(),
         },
       });
@@ -305,13 +279,13 @@ export const validationMiddleware = {
       const result = LintQuerySchema.parse(req.query);
       req.validatedQuery = result;
       next();
-    } catch (error: any) {
+    } catch (error: unknown) {
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid query parameters',
-          details: error.errors || error.message,
+          details: (error as any).errors || (error as any).message,
           timestamp: new Date().toISOString(),
         },
       });

@@ -46,7 +46,7 @@ export class DatabaseService {
       // Use the schema from scripts folder
       const schemaPath = join(__dirname, '..', '..', 'scripts', 'schema.sql');
       execSync(`sqlite3 "${this.dbPath}" < "${schemaPath}"`, { stdio: 'pipe' });
-    } catch (error) {
+    } catch {
       // If schema file doesn't exist, create basic tables
       this.exec(`
         CREATE TABLE IF NOT EXISTS lint_results (
@@ -97,84 +97,74 @@ export class DatabaseService {
   }
 
   private query(sql: string, params: any[] = []): any[] {
-    try {
-      // For complex JSON queries, we need to be very careful with escaping
-      let processedSql = sql;
+    // For complex JSON queries, we need to be very careful with escaping
+    let processedSql = sql;
 
-      // Replace ? placeholders with properly escaped parameters
-      params.forEach(param => {
-        const placeholder = '?';
-        if (processedSql.includes(placeholder)) {
-          let escapedParam: string;
+    // Replace ? placeholders with properly escaped parameters
+    params.forEach(param => {
+      const placeholder = '?';
+      if (processedSql.includes(placeholder)) {
+        let escapedParam: string;
 
-          if (param === null || param === undefined) {
-            escapedParam = 'NULL';
-          } else if (typeof param === 'string') {
-            // For SQLite command line, we need to escape very carefully
-            // Replace single quotes with double single quotes, handle special chars
-            const escaped = param
-              .replace(/'/g, "''")
-              .replace(/\\/g, '\\\\')
-              .replace(/\n/g, '\\n')
-              .replace(/\r/g, '\\r')
-              .replace(/\t/g, '\\t')
-              .replace(/"/g, '\\"')
-              .replace(/\x00/g, '\\0');
-            escapedParam = `'${escaped}'`;
-          } else if (typeof param === 'number') {
-            escapedParam = param.toString();
-          } else if (typeof param === 'boolean') {
-            escapedParam = param ? '1' : '0';
-          } else {
-            // For objects, stringify and escape
-            const jsonStr = JSON.stringify(param);
-            const escaped = jsonStr
-              .replace(/'/g, "''")
-              .replace(/\\/g, '\\\\')
-              .replace(/\n/g, '\\n')
-              .replace(/\r/g, '\\r')
-              .replace(/\t/g, '\\t')
-              .replace(/"/g, '\\"')
-              .replace(/\x00/g, '\\0');
-            escapedParam = `'${escaped}'`;
-          }
+        if (param === null || param === undefined) {
+          escapedParam = 'NULL';
+        } else if (typeof param === 'string') {
+          // For SQLite command line, we need to escape very carefully
+          // Replace single quotes with double single quotes, handle special chars
+          const escaped = param
+            .replace(/'/g, "''")
+            .replace(/\\/g, '\\\\')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+            .replace(/"/g, '\\"')
+            .replace(/\x00/g, '\\0');
+          escapedParam = `'${escaped}'`;
+        } else if (typeof param === 'number') {
+          escapedParam = param.toString();
+        } else if (typeof param === 'boolean') {
+          escapedParam = param ? '1' : '0';
+        } else {
+          // For objects, stringify and escape
+          const jsonStr = JSON.stringify(param);
+          const escaped = jsonStr
+            .replace(/'/g, "''")
+            .replace(/\\/g, '\\\\')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+            .replace(/"/g, '\\"')
+            .replace(/\x00/g, '\\0');
+          escapedParam = `'${escaped}'`;
+        }
 
-          processedSql = processedSql.replace(placeholder, escapedParam);
+        processedSql = processedSql.replace(placeholder, escapedParam);
+      }
+    });
+
+    const result = execSync(`sqlite3 "${this.dbPath}" "${processedSql}"`, {
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+    });
+
+    if (!result.trim()) return [];
+
+    return result
+      .trim()
+      .split('\n')
+      .map(row => {
+        try {
+          return JSON.parse(row);
+        } catch {
+          return row.split('|');
         }
       });
-
-      const result = execSync(`sqlite3 "${this.dbPath}" "${processedSql}"`, {
-        encoding: 'utf-8',
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-      });
-
-      if (!result.trim()) return [];
-
-      return result
-        .trim()
-        .split('\n')
-        .map(row => {
-          try {
-            return JSON.parse(row);
-          } catch {
-            return row.split('|');
-          }
-        });
-    } catch (error: any) {
-      console.error('Database query failed:', error);
-      throw error;
-    }
   }
 
   private exec(sql: string): void {
-    try {
-      execSync(`sqlite3 "${this.dbPath}" "${sql}"`, {
-        encoding: 'utf-8',
-      });
-    } catch (error) {
-      console.error('Database exec failed:', error);
-      throw error;
-    }
+    execSync(`sqlite3 "${this.dbPath}" "${sql}"`, {
+      encoding: 'utf-8',
+    });
   }
 
   // Helper to perform a write (e.g., DELETE) and return number of changed rows
@@ -467,7 +457,7 @@ export class DatabaseService {
   // Health check
   async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
     try {
-      const result = this.query('SELECT 1 as test;');
+      this.query('SELECT 1 as test;');
       const tableCount = this.query(`
         SELECT COUNT(*) as count FROM sqlite_master
         WHERE type='table' AND name NOT LIKE 'sqlite_%';

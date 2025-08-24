@@ -265,7 +265,7 @@ app.get('/', async (req, res) => {
 app.use(createLinterRouter(workspaceManager, linterRunner, cacheService, db, jobManager));
 
 // Global error handler
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const requestId = (req as any).requestId;
 
   logger.error('Unhandled error', {
