@@ -7,8 +7,10 @@ import winston from 'winston';
 import { DatabaseService } from './services/database';
 import { WorkspaceManager } from './services/workspace';
 import { LinterRunner } from './services/linter';
+import { SuperLinterRunner } from './services/superLinterRunner';
 import { CacheService } from './services/cache';
 import { JobManager } from './services/jobManager';
+import { EnvironmentDetector } from './services/environmentDetector';
 import { createLinterRouter } from './routes/linter';
 import { createErrorResponse } from './types/errors';
 
@@ -30,12 +32,35 @@ const logger = winston.createLogger({
   ]
 });
 
-// Initialize services
-const db = new DatabaseService();
-const workspaceManager = new WorkspaceManager();
-const linterRunner = new LinterRunner(workspaceManager);
-const cacheService = new CacheService(db);
-const jobManager = new JobManager(db, workspaceManager, linterRunner, cacheService);
+// Initialize services with environment detection
+async function initializeServices() {
+  // Detect environment capabilities
+  const capabilities = await EnvironmentDetector.detectCapabilities();
+  
+  logger.info('Environment detected', {
+    superlinterEnvironment: capabilities.isSuperlinterEnvironment,
+    containerized: capabilities.containerized,
+    availableLinters: capabilities.availableLinters.length,
+    nodeVersion: capabilities.nodeVersion,
+  });
+
+  const db = new DatabaseService();
+  const workspaceManager = new WorkspaceManager();
+  
+  // Choose the appropriate linter runner based on environment
+  const linterRunner = capabilities.isSuperlinterEnvironment
+    ? new SuperLinterRunner(workspaceManager)
+    : new LinterRunner(workspaceManager);
+  
+  logger.info(`Using ${capabilities.isSuperlinterEnvironment ? 'SuperLinterRunner' : 'LinterRunner'}`, {
+    reason: capabilities.isSuperlinterEnvironment ? 'Super-linter environment detected' : 'Standard environment - ESLint only'
+  });
+
+  const cacheService = new CacheService(db);
+  const jobManager = new JobManager(db, workspaceManager, linterRunner, cacheService);
+
+  return { db, workspaceManager, linterRunner, cacheService, jobManager };
+}
 
 // Create Express app
 const app: express.Application = express();
@@ -83,6 +108,7 @@ app.use(express.json({
     (req as any).rawBody = buf;
   }
 }));
+app.use(express.text({ limit: '50mb' })); // Add text parsing for plain text content
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting
@@ -136,36 +162,62 @@ app.use((req, res, next) => {
       duration,
     });
 
-    // Record metrics
-    db.recordMetric({
-      endpoint: req.route?.path || req.path,
-      method: req.method as any,
-      status_code: res.statusCode,
-      response_time_ms: duration,
-      cache_hit: (req as any).cacheHit || false,
-      linter_type: (req as any).linterType,
-      format: (req as any).format,
-      error_type: res.statusCode >= 400 ? 'client_error' : undefined as any,
-    }).catch(err => {
-      logger.warn('Failed to record metrics', { error: err.message });
-    });
+    // Record metrics if services are initialized
+    if (globalServices?.db) {
+      globalServices.db.recordMetric({
+        endpoint: req.route?.path || req.path,
+        method: req.method as any,
+        status_code: res.statusCode,
+        response_time_ms: duration,
+        cache_hit: (req as any).cacheHit || false,
+        linter_type: (req as any).linterType,
+        format: (req as any).format,
+        error_type: res.statusCode >= 400 ? 'client_error' : undefined as any,
+      }).catch((err: any) => {
+        logger.warn('Failed to record metrics', { error: err.message });
+      });
+    }
   });
 
   next();
 });
 
+// Global services variable (will be initialized async)
+let globalServices: any = null;
+
+// Async startup function
+async function startServer() {
+  // Initialize services based on environment
+  const services = await initializeServices();
+  const { db, workspaceManager, linterRunner, cacheService, jobManager } = services;
+  
+  // Store services globally for middleware access
+  globalServices = services;
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
   try {
     const dbHealth = await db.healthCheck();
+    const capabilities = await EnvironmentDetector.detectCapabilities();
+    
     const health = {
       status: dbHealth.status === 'healthy' ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '1.0.0',
+      environment: {
+        superlinter: capabilities.isSuperlinterEnvironment,
+        containerized: capabilities.containerized,
+        nodeVersion: capabilities.nodeVersion,
+        platform: capabilities.platform,
+      },
       checks: {
         database: dbHealth.status === 'healthy',
-        filesystem: true, // TODO: Add filesystem check
-        linters: true, // TODO: Add linter availability check
+        filesystem: true,
+        linters: capabilities.availableLinters.length > 0,
+      },
+      linters: {
+        count: capabilities.availableLinters.length,
+        available: capabilities.availableLinters.slice(0, 10), // Show first 10
       },
       uptime_ms: process.uptime() * 1000,
     };
@@ -184,11 +236,19 @@ app.get('/health', async (req, res) => {
 });
 
 // Basic info endpoint
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  const capabilities = await EnvironmentDetector.detectCapabilities();
+  
   res.json({
     name: 'Super Linter API',
     version: process.env.npm_package_version || '1.0.0',
     description: 'HTTP API layer for Super-linter providing Kroki-style REST endpoints',
+    environment: capabilities.isSuperlinterEnvironment ? 'Super-linter' : 'Standard (ESLint only)',
+    runtime: {
+      superlinter: capabilities.isSuperlinterEnvironment,
+      containerized: capabilities.containerized,
+      availableLinters: capabilities.availableLinters.length,
+    },
     endpoints: {
       health: '/health',
       linters: '/linters',
@@ -273,4 +333,13 @@ server.on('error', (error: any) => {
   }
 });
 
-export { app, server };
+  return { app, server, services };
+}
+
+// Start the application
+startServer().catch((error) => {
+  logger.error('Failed to start server', { error: error.message, stack: error.stack });
+  process.exit(1);
+});
+
+export { app };

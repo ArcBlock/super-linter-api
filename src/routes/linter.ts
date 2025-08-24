@@ -248,11 +248,18 @@ export function createLinterRouter(
         requestId,
         linter,
         format,
-        bodySize: JSON.stringify(req.body).length,
+        bodySize: typeof req.body === 'string' ? req.body.length : JSON.stringify(req.body || '').length,
       });
 
+      // Handle plain text content
+      let requestBody = req.body;
+      if (typeof req.body === 'string') {
+        // If body is a plain string, treat it as content
+        requestBody = { content: req.body };
+      }
+      
       // Validate request body
-      const validatedBody = PostBodySchema.parse(req.body);
+      const validatedBody = PostBodySchema.parse(requestBody);
       const options: LinterOptions = {
         validate_all: validatedBody.options.validate_all,
         exclude_patterns: validatedBody.options.exclude_patterns,
@@ -396,11 +403,18 @@ export function createLinterRouter(
         requestId,
         linter,
         format,
-        bodySize: JSON.stringify(req.body).length,
+        bodySize: typeof req.body === 'string' ? req.body.length : JSON.stringify(req.body || '').length,
       });
 
+      // Handle plain text content
+      let requestBody = req.body;
+      if (typeof req.body === 'string') {
+        // If body is a plain string, treat it as content
+        requestBody = { content: req.body };
+      }
+      
       // Validate request body
-      const validatedBody = PostBodySchema.parse(req.body);
+      const validatedBody = PostBodySchema.parse(requestBody);
       const options: LinterOptions = {
         validate_all: validatedBody.options.validate_all,
         exclude_patterns: validatedBody.options.exclude_patterns,

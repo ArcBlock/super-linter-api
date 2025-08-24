@@ -14,7 +14,7 @@ const logger = winston.createLogger({
 });
 
 export class LinterRunner {
-  private workspaceManager: WorkspaceManager;
+  protected workspaceManager: WorkspaceManager;
   private runningProcesses: Map<string, ChildProcess>;
 
   constructor(workspaceManager: WorkspaceManager) {

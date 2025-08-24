@@ -60,7 +60,7 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
   eslint: {
     name: 'eslint',
     executable: 'eslint',
-    args: ['--format', 'json', '--no-eslintrc', '--no-ignore'],
+    args: ['--format', 'json', '--no-ignore'],
     env_vars: {},
     supported_extensions: ['.js', '.jsx', '.ts', '.tsx', '.vue'],
     config_files: ['.eslintrc.js', '.eslintrc.json', '.eslintrc.yml'],
