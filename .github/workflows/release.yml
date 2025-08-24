@@ -88,13 +88,9 @@ jobs:
           pnpm test
 
   build-release-images:
-    name: 🐳 Build Release Images
+    name: 🐳 Build Release Image
     runs-on: ubuntu-latest
     needs: validate-release
-
-    strategy:
-      matrix:
-        image-type: [standard, superlinter]
 
     permissions:
       contents: read
@@ -119,25 +115,23 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
           tags: |
-            type=semver,pattern={{version}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
-            type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
-            type=semver,pattern={{major}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
-            type=raw,value=latest,enable={{is_default_branch}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: 🐳 Build and push release image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.image-type == 'superlinter' && 'Dockerfile.superlinter' || 'Dockerfile' }}
+          file: Dockerfile.superlinter
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             ${{ steps.meta.outputs.labels }}
-            org.opencontainers.image.title=Super-linter API${{ matrix.image-type == 'superlinter' && ' (Super-linter)' || '' }}
+            org.opencontainers.image.title=Super-linter API
             org.opencontainers.image.description=HTTP API layer for Super-linter providing Kroki-style REST endpoints
             org.opencontainers.image.version=${{ needs.validate-release.outputs.version }}
           cache-from: type=gha
@@ -147,11 +141,9 @@ jobs:
             BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
       - name: 🔒 Sign container image
-        if: matrix.image-type == 'standard'  # Only sign one image to avoid duplication
         uses: sigstore/cosign-installer@v3
 
       - name: 🔒 Sign the published Docker image
-        if: matrix.image-type == 'standard'
         run: |
           cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}
         env:
@@ -210,16 +202,11 @@ jobs:
           fi
 
           echo "" >> release-notes.md
-          echo "## 📦 Container Images" >> release-notes.md
+          echo "## 📦 Container Image" >> release-notes.md
           echo "" >> release-notes.md
-          echo "### Standard Image (ESLint only)" >> release-notes.md
+          echo "### Super-linter API (All 50+ linters included)" >> release-notes.md
           echo "\`\`\`bash" >> release-notes.md
           echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION" >> release-notes.md
-          echo "\`\`\`" >> release-notes.md
-          echo "" >> release-notes.md
-          echo "### Super-linter Image (All linters)" >> release-notes.md
-          echo "\`\`\`bash" >> release-notes.md
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION-superlinter" >> release-notes.md
           echo "\`\`\`" >> release-notes.md
           echo "" >> release-notes.md
           echo "## 🔗 Links" >> release-notes.md
@@ -264,9 +251,8 @@ jobs:
             **Version:** v${{ needs.validate-release.outputs.version }}
             **Type:** ${{ needs.validate-release.outputs.is_prerelease == 'true' && 'Pre-release' || 'Stable Release' }}
 
-            **Container Images:**
-            • Standard: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}`
-            • Super-linter: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}-superlinter`
+            **Container Image:**
+            • Super-linter API: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}`
 
             **Status:**
             • Build: ${{ needs.build-release-images.result }}

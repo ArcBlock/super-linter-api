@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Build script for Super-linter API
-# This script builds both standard and Super-linter Docker images
+# This script builds the Super-linter Docker image
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -35,35 +35,28 @@ show_usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
 
-Build Super-linter API Docker images
+Build Super-linter API Docker image
 
 OPTIONS:
-    -t, --type TYPE     Build type: 'standard', 'superlinter', or 'all' (default: all)
     -v, --version VER   Version tag (default: auto-generated timestamp)
-    --push              Push images to registry after build
+    --push              Push image to registry after build
     --no-cache          Build without using Docker cache
     -h, --help          Show this help message
 
 EXAMPLES:
-    $0                           # Build both images
-    $0 -t standard              # Build only standard image
-    $0 -t superlinter --push    # Build and push Super-linter image
-    $0 --no-cache -v latest     # Build without cache, tag as latest
+    $0                      # Build Super-linter image
+    $0 --push              # Build and push Super-linter image
+    $0 --no-cache -v latest # Build without cache, tag as latest
 
 EOF
 }
 
 parse_args() {
-    BUILD_TYPE="all"
     PUSH=false
     NO_CACHE=""
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -t|--type)
-                BUILD_TYPE="$2"
-                shift 2
-                ;;
             -v|--version)
                 VERSION="$2"
                 shift 2
@@ -87,13 +80,6 @@ parse_args() {
                 ;;
         esac
     done
-    
-    # Validate build type
-    if [[ ! "$BUILD_TYPE" =~ ^(standard|superlinter|all)$ ]]; then
-        log_error "Invalid build type: $BUILD_TYPE"
-        log_error "Must be one of: standard, superlinter, all"
-        exit 1
-    fi
 }
 
 check_prerequisites() {
@@ -119,7 +105,6 @@ check_prerequisites() {
     
     # Check required files
     local required_files=(
-        "Dockerfile"
         "Dockerfile.superlinter"
         "src/server.ts"
         "pnpm-lock.yaml"
@@ -170,39 +155,12 @@ run_tests() {
     log_success "All pre-build checks passed"
 }
 
-build_standard_image() {
-    log_info "Building standard Docker image..."
-    
-    local image_name="super-linter-api:$VERSION"
-    local latest_tag="super-linter-api:latest"
-    
-    cd "$PROJECT_ROOT"
-    
-    if ! docker build $NO_CACHE -t "$image_name" -t "$latest_tag" .; then
-        log_error "Failed to build standard image"
-        return 1
-    fi
-    
-    log_success "Built standard image: $image_name"
-    
-    # Show image size
-    local size=$(docker images --format "table {{.Size}}" "$image_name" | tail -n 1)
-    log_info "Image size: $size"
-    
-    if [[ "$PUSH" == "true" ]]; then
-        log_info "Pushing standard image..."
-        docker push "$image_name"
-        docker push "$latest_tag"
-        log_success "Pushed standard image"
-    fi
-}
-
 build_superlinter_image() {
     log_info "Building Super-linter Docker image..."
     log_warn "This may take 10-15 minutes and requires ~6GB disk space"
     
-    local image_name="super-linter-api:superlinter-$VERSION"
-    local latest_tag="super-linter-api:superlinter"
+    local image_name="super-linter-api:$VERSION"
+    local latest_tag="super-linter-api:latest"
     
     cd "$PROJECT_ROOT"
     
@@ -247,7 +205,6 @@ show_summary() {
     log_info "Build Summary:"
     echo "============================================"
     echo "Version: $VERSION"
-    echo "Build Type: $BUILD_TYPE"
     echo "Push to Registry: $PUSH"
     echo "============================================"
     
@@ -262,23 +219,10 @@ main() {
     
     log_info "Starting Super-linter API build..."
     log_info "Version: $VERSION"
-    log_info "Build Type: $BUILD_TYPE"
     
     check_prerequisites
     run_tests
-    
-    case $BUILD_TYPE in
-        standard)
-            build_standard_image
-            ;;
-        superlinter)
-            build_superlinter_image
-            ;;
-        all)
-            build_standard_image
-            build_superlinter_image
-            ;;
-    esac
+    build_superlinter_image
     
     cleanup_dangling_images
     show_summary

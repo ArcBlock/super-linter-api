@@ -9,12 +9,13 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ## 🚀 Features
 
-### Dual Environment Support
+### Comprehensive Linting Support
 
-- **Standard Mode**: ESLint-only support for quick development and testing
-- **Super-linter Mode**: Full support for 24+ linters when running in Docker with Super-linter base image
+- **Complete Integration**: Built on Super-linter base image with all 50+ linters pre-installed
+- **Production Ready**: Single Docker image that includes all supported linters
+- **Dual Operation**: Works as standalone API or embedded in Super-linter workflows
 
-### Supported Linters (Super-linter Mode)
+### Supported Linters
 
 - **JavaScript/TypeScript**: ESLint, Prettier, JSHint
 - **Python**: Pylint, Flake8, Black, isort, Bandit, MyPy
@@ -56,17 +57,17 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ## 🏃 Quick Start
 
-### Using Docker (Super-linter Mode - Recommended)
+### Using Docker (Recommended)
 
 ```bash
 # Build the Super-linter enabled image
-docker build -f Dockerfile.superlinter -t super-linter-api:superlinter .
+docker build -f Dockerfile.superlinter -t super-linter-api .
 
 # Run with full linter support
-docker run -p 3000:3000 super-linter-api:superlinter
+docker run -p 3000:3000 super-linter-api
 ```
 
-### Local Development (Standard Mode)
+### Local Development
 
 ```bash
 # Install dependencies
@@ -100,11 +101,8 @@ pnpm start
 ### Docker Installation
 
 ```bash
-# Standard image (ESLint only)
-docker build -t super-linter-api .
-
-# Super-linter image (all linters)
-docker build -f Dockerfile.superlinter -t super-linter-api:superlinter .
+# Build the Super-linter API image (includes all 50+ linters)
+docker build -f Dockerfile.superlinter -t super-linter-api .
 ```
 
 ## 🔧 API Usage
@@ -285,8 +283,7 @@ tests/
 └── utils/           # Test utilities
 
 docker/
-├── Dockerfile        # Standard Docker image
-└── Dockerfile.superlinter  # Super-linter based image
+└── Dockerfile.superlinter  # Super-linter based image with all 50+ linters
 ```
 
 ## 🧪 Testing
@@ -315,24 +312,14 @@ pnpm test src/services/linter.test.ts
 
 ## 🐳 Docker
 
-### Standard Image (ESLint Only)
-
-```bash
-# Build
-docker build -t super-linter-api .
-
-# Run
-docker run -p 3000:3000 super-linter-api
-```
-
-### Super-linter Image (Full Support)
+### Production Docker Image
 
 ```bash
 # Build (requires ~6GB disk space)
-docker build -f Dockerfile.superlinter -t super-linter-api:superlinter .
+docker build -f Dockerfile.superlinter -t super-linter-api .
 
-# Run with all linters
-docker run -p 3000:3000 super-linter-api:superlinter
+# Run with all 50+ linters
+docker run -p 3000:3000 super-linter-api
 ```
 
 ### Docker Compose

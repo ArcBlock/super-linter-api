@@ -103,13 +103,9 @@ jobs:
 
   # Build Docker Images
   build:
-    name: 🐳 Build Docker Images
+    name: 🐳 Build Docker Image
     runs-on: ubuntu-latest
     needs: [test]
-
-    strategy:
-      matrix:
-        image-type: [standard, superlinter]
 
     permissions:
       contents: read
@@ -135,19 +131,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: 🐳 Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.image-type == 'superlinter' && 'Dockerfile.superlinter' || 'Dockerfile' }}
+          file: Dockerfile.superlinter
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -169,13 +163,9 @@ jobs:
     needs: [build]
     if: github.event_name != 'pull_request'
 
-    strategy:
-      matrix:
-        image-type: [standard, superlinter]
-
     services:
       super-linter-api:
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         ports:
           - 3000:3000
         options: >-
@@ -206,7 +196,7 @@ jobs:
         run: pnpm test:integration
         env:
           API_BASE_URL: http://localhost:3000
-          TEST_IMAGE_TYPE: ${{ matrix.image-type }}
+          TEST_IMAGE_TYPE: superlinter
 
   # Performance Tests
   performance:

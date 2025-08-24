@@ -243,7 +243,7 @@ The Phase 3 implementation is **production-ready** for the core functionality. T
 
 ### 5.3 Development Environment
 
-- [x] Create `docker-compose.yml` for development
+- [x] ~~Create `docker-compose.yml` for development~~ (removed - simplified to single Docker image)
 - [x] Add hot reload support for development
 - [x] Configure volume mounts for rapid iteration
 - [x] Add development environment variables
@@ -282,7 +282,7 @@ The Phase 3 implementation is **production-ready** for the core functionality. T
 ### 6.3 Documentation
 
 - [ ] Create API documentation (OpenAPI/Swagger)
-- [ ] Write deployment guides (Docker, Kubernetes, docker-compose)
+- [ ] Write deployment guides (Docker, Kubernetes)
 - [ ] Add usage examples and tutorials
 - [ ] Create troubleshooting guide
 - [ ] Update main Super-linter README with API information
