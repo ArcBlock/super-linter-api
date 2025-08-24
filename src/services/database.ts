@@ -208,8 +208,12 @@ export class DatabaseService {
     
     const results = this.query(sql, [contentHash, linterType, optionsHash]);
     if (results.length === 0) return null;
-    // query() already parses json_object rows to JS objects
-    return results[0];
+    const row = results[0] as any;
+    // Normalize datetime fields back to ISO for JS correctness
+    const normalize = (dt?: string) => dt ? dt.replace(' ', 'T') + 'Z' : dt;
+    row.created_at = normalize(row.created_at);
+    row.expires_at = normalize(row.expires_at);
+    return row as LintResult;
   }
 
   async storeCachedResult(result: Omit<LintResult, 'id'>): Promise<string> {

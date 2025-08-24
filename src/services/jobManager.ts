@@ -198,11 +198,10 @@ export class JobManager extends EventEmitter {
     }, this.jobTimeoutMs);
     this.jobTimeouts.set(jobId, timeout);
 
+    const startTime = Date.now();
     try {
       // Update job status to running
       await this.db.updateJobStatus(jobId, 'running');
-      
-      const startTime = Date.now();
       logger.info('Job processing started', { jobId });
 
       // Check cache first
@@ -305,7 +304,7 @@ export class JobManager extends EventEmitter {
       this.emit('jobCompleted', jobId, result);
 
     } catch (error: any) {
-      const executionTime = Date.now() - Date.now(); // This will be small for errors
+      const executionTime = Date.now() - startTime;
 
       logger.error('Job failed', {
         jobId,

@@ -410,13 +410,17 @@ async function createTestTarGz(files: { [filename: string]: string | Buffer }): 
     await fs.mkdir(tmpDir, { recursive: true });
     
     for (const [filename, content] of Object.entries(files)) {
-      const filePath = join(tmpDir, filename);
-      const directory = join(filePath, '..');
-      
+      const targetPath = join(tmpDir, filename);
+      const resolved = resolve(targetPath);
+      // Ensure we never write outside tmpDir (sandbox safe)
+      if (!resolved.startsWith(resolve(tmpDir))) {
+        // Skip creating this file to avoid path traversal writes
+        continue;
+      }
+      const directory = join(resolved, '..');
       await fs.mkdir(directory, { recursive: true });
-      
       const buffer = typeof content === 'string' ? Buffer.from(content) : content;
-      await fs.writeFile(filePath, buffer);
+      await fs.writeFile(resolved, buffer);
     }
     
     // Create tar.gz archive
