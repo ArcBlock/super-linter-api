@@ -9,6 +9,71 @@ export class DatabaseService {
     this.dbPath = dbPath || join(__dirname, '..', '..', 'data', 'super-linter-api.db');
   }
 
+  async initialize(): Promise<void> {
+    const { execSync } = require('child_process');
+    const { existsSync, mkdirSync } = require('fs');
+    const { dirname } = require('path');
+    
+    try {
+      // Ensure directory exists
+      const dataDir = dirname(this.dbPath);
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true });
+      }
+      
+      // Use the schema from scripts folder
+      const schemaPath = join(__dirname, '..', '..', 'scripts', 'schema.sql');
+      execSync(`sqlite3 "${this.dbPath}" < "${schemaPath}"`, { stdio: 'pipe' });
+    } catch (error) {
+      // If schema file doesn't exist, create basic tables
+      this.exec(`
+        CREATE TABLE IF NOT EXISTS lint_results (
+          id TEXT PRIMARY KEY,
+          content_hash TEXT NOT NULL,
+          linter_type TEXT NOT NULL,
+          options_hash TEXT NOT NULL,
+          result TEXT,
+          format TEXT NOT NULL,
+          status TEXT NOT NULL,
+          error_message TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          expires_at TEXT NOT NULL
+        );
+        
+        CREATE TABLE IF NOT EXISTS lint_jobs (
+          id TEXT PRIMARY KEY,
+          job_id TEXT UNIQUE NOT NULL,
+          linter_type TEXT NOT NULL,
+          format TEXT NOT NULL,
+          content TEXT,
+          archive TEXT,
+          filename TEXT,
+          options TEXT NOT NULL,
+          status TEXT NOT NULL,
+          result TEXT,
+          error_message TEXT,
+          execution_time_ms INTEGER,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          started_at TEXT,
+          completed_at TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS api_metrics (
+          id TEXT PRIMARY KEY,
+          endpoint TEXT NOT NULL,
+          method TEXT NOT NULL,
+          status_code INTEGER NOT NULL,
+          response_time_ms INTEGER NOT NULL,
+          cache_hit INTEGER DEFAULT 0,
+          linter_type TEXT,
+          format TEXT,
+          error_type TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    }
+  }
+
   private query(sql: string, params: any[] = []): any[] {
     try {
       // For complex JSON queries, we need to be very careful with escaping
@@ -236,12 +301,20 @@ export class DatabaseService {
     const sql = `
       SELECT json_object(
         'id', id,
-        'content_hash', content_hash,
+        'job_id', job_id,
         'linter_type', linter_type,
         'format', format,
+        'content', content,
+        'archive', archive,
+        'filename', filename,
         'options', options,
         'status', status,
-        'created_at', created_at
+        'result', result,
+        'error_message', error_message,
+        'execution_time_ms', execution_time_ms,
+        'created_at', created_at,
+        'started_at', started_at,
+        'completed_at', completed_at
       ) as json_result
       FROM lint_jobs 
       WHERE status = 'pending' 

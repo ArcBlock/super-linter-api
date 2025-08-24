@@ -203,8 +203,8 @@ export class LinterRunner {
         } else {
           reject(new LinterError(
             'LINTER_EXECUTION_FAILED',
-            `Process error: ${(error as Error).message}`,
-            { linter: config.name, error: (error as Error).message }
+            `Process error: ${(error).message}`,
+            { linter: config.name, error: (error).message }
           ));
         }
       });
@@ -345,9 +345,9 @@ export class LinterRunner {
     
     if (parsedOutput.files) {
       // Some linters group by files
-      for (const file of Object.values(parsedOutput.files) as any[]) {
-        if (file.messages) {
-          issues.push(...file.messages);
+      for (const file of Object.values(parsedOutput.files)) {
+        if ((file as any)?.messages) {
+          issues.push(...(file as any).messages);
         }
       }
     }

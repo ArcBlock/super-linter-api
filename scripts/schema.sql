@@ -28,13 +28,17 @@ ON lint_results (created_at);
 -- Async job tracking table  
 CREATE TABLE IF NOT EXISTS lint_jobs (
     id TEXT PRIMARY KEY,
-    content_hash TEXT NOT NULL,
+    job_id TEXT UNIQUE NOT NULL,
     linter_type TEXT NOT NULL,
     format TEXT NOT NULL CHECK (format IN ('json', 'text', 'sarif')),
+    content TEXT,
+    archive TEXT,
+    filename TEXT,
     options TEXT NOT NULL, -- JSON string of options
     status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
     result TEXT,
     error_message TEXT,
+    execution_time_ms INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     started_at TEXT,
     completed_at TEXT
@@ -47,8 +51,8 @@ ON lint_jobs (status);
 CREATE INDEX IF NOT EXISTS idx_lint_jobs_created 
 ON lint_jobs (created_at);
 
-CREATE INDEX IF NOT EXISTS idx_lint_jobs_hash 
-ON lint_jobs (content_hash);
+CREATE INDEX IF NOT EXISTS idx_lint_jobs_job_id 
+ON lint_jobs (job_id);
 
 -- API metrics and monitoring
 CREATE TABLE IF NOT EXISTS api_metrics (
@@ -93,12 +97,7 @@ SELECT
     status,
     COUNT(*) as count,
     linter_type,
-    AVG(
-        CASE 
-            WHEN completed_at IS NOT NULL AND started_at IS NOT NULL 
-            THEN (julianday(completed_at) - julianday(started_at)) * 86400000
-        END
-    ) as avg_duration_ms
+    AVG(execution_time_ms) as avg_duration_ms
 FROM lint_jobs
 GROUP BY status, linter_type;
 

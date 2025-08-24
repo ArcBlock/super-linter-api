@@ -180,7 +180,7 @@ export class CacheService {
 
   async invalidate(contentHash?: string, linter?: LinterType): Promise<number> {
     try {
-      let deletedCount = 0;
+      const deletedCount = 0;
 
       if (contentHash && linter) {
         // Invalidate specific cache entries
@@ -247,7 +247,7 @@ export class CacheService {
       
       // Aggregate stats from database results
       let totalEntries = 0;
-      let sizeMb = 0;
+      const sizeMb = 0;
       
       for (const stat of cacheStats) {
         totalEntries += stat.total_cached || 0;
