@@ -33,6 +33,7 @@ export class CacheService {
   private cleanupTimer?: NodeJS.Timeout;
   private hitCount: number;
   private missCount: number;
+  private memoryCache: Map<string, LintResult>;
 
   constructor(db: DatabaseService, options: CacheOptions = {}) {
     this.db = db;
@@ -40,6 +41,7 @@ export class CacheService {
     this.maxEntries = options.max_entries || 100000; // 100k entries max
     this.hitCount = 0;
     this.missCount = 0;
+    this.memoryCache = new Map();
 
     // Start cleanup timer
     if (options.cleanup_interval_hours) {
@@ -95,6 +97,17 @@ export class CacheService {
     optionsHash: string
   ): Promise<LintResult | null> {
     try {
+      const memKey = `${contentHash}:${linter}:${optionsHash}`;
+      const inMem = this.memoryCache.get(memKey);
+      if (inMem) {
+        // Ensure not expired
+        if (new Date(inMem.expires_at).getTime() > Date.now()) {
+          this.hitCount++;
+          return inMem;
+        } else {
+          this.memoryCache.delete(memKey);
+        }
+      }
       const result = await this.db.getCachedResult(contentHash, linter, optionsHash);
       
       if (result) {
@@ -104,6 +117,8 @@ export class CacheService {
           contentHash: contentHash.substring(0, 8),
           optionsHash: optionsHash.substring(0, 8),
         });
+        // Store to in-memory cache to speed immediate subsequent reads
+        this.memoryCache.set(memKey, result);
         return result;
       } else {
         this.missCount++;
@@ -149,6 +164,11 @@ export class CacheService {
       };
 
       const id = await this.db.storeCachedResult(cacheEntry);
+      const memKey = `${contentHash}:${linter}:${optionsHash}`;
+      this.memoryCache.set(memKey, {
+        id,
+        ...cacheEntry,
+      } as LintResult);
       
       logger.debug('Cache set', {
         id,

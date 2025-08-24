@@ -9,7 +9,7 @@ import { JobManager } from '../services/jobManager';
 import { inflateRaw } from 'zlib';
 import { promisify } from 'util';
 import winston from 'winston';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 const logger = winston.createLogger({
   level: 'info',
@@ -362,13 +362,13 @@ export function createLinterRouter(
       });
 
       // Handle validation errors
-      if (error.name === 'ZodError') {
+      if (error instanceof ZodError) {
         const errorResponse = createErrorResponse({
           code: 'VALIDATION_ERROR',
-          message: `Request validation failed: ${error.errors.map((e: any) => e.message).join(', ')}`,
+          message: `Request validation failed: ${error.issues.map((e: any) => e.message).join(', ')}`,
           statusCode: 400,
           name: 'ValidationError',
-          details: { errors: error.errors },
+          details: { errors: error.issues },
         }, requestId);
         res.status(400).json(errorResponse);
         return;
@@ -460,13 +460,13 @@ export function createLinterRouter(
       });
 
       // Handle validation errors
-      if (error.name === 'ZodError') {
+      if (error instanceof ZodError) {
         const errorResponse = createErrorResponse({
           code: 'VALIDATION_ERROR',
-          message: `Request validation failed: ${error.errors.map((e: any) => e.message).join(', ')}`,
+          message: `Request validation failed: ${error.issues.map((e: any) => e.message).join(', ')}`,
           statusCode: 400,
           name: 'ValidationError',
-          details: { errors: error.errors },
+          details: { errors: error.issues },
         }, requestId);
         res.status(400).json(errorResponse);
         return;

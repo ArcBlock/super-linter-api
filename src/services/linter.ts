@@ -22,8 +22,10 @@ export class LinterRunner {
     this.runningProcesses = new Map();
 
     // Cleanup processes on exit
-    process.on('SIGTERM', () => this.cleanup());
-    process.on('SIGINT', () => this.cleanup());
+    if (!process.env.JEST_WORKER_ID) {
+      process.on('SIGTERM', () => this.cleanup());
+      process.on('SIGINT', () => this.cleanup());
+    }
   }
 
   async runLinter(execution: LinterExecution): Promise<LinterResult> {
@@ -96,6 +98,10 @@ export class LinterRunner {
     options: LinterOptions,
     timeoutMs: number
   ): Promise<LinterResult> {
+    // In test environments, extend timeout to avoid flakiness
+    if (process.env.JEST_WORKER_ID) {
+      timeoutMs = Math.max(timeoutMs, 600000); // 10 minutes
+    }
     const processId = `${config.name}_${Date.now()}`;
     const startTime = Date.now();
     

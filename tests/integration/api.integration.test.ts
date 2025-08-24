@@ -1,5 +1,5 @@
 import express from 'express';
-import request from 'supertest';
+import http from 'http';
 import { createLinterRouter } from '../../src/routes/linter';
 import { WorkspaceManager } from '../../src/services/workspace';
 import { LinterRunner } from '../../src/services/linter';
@@ -165,22 +165,37 @@ async function buildApp() {
 
 describe('Integration: Linter API routes', () => {
   let app: express.Application;
+  let server: http.Server;
+  let base: string;
 
   beforeAll(async () => {
     app = await buildApp();
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, () => resolve());
+    });
+    await new Promise<void>((resolve) => {
+      if (server.listening) return resolve();
+      server.on('listening', () => resolve());
+    });
+    const addr = server.address();
+    if (!addr || typeof addr === 'string') {
+      throw new Error('Server did not provide an address');
+    }
+    base = `http://127.0.0.1:${addr.port}`;
   });
 
   afterAll(async () => {
-    // no-op
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
   it('POST /eslint/json with content returns JSON result', async () => {
-    const resp = await request(app)
-      .post('/eslint/json')
-      .send({ content: 'console.log(1)', filename: 'code.js', options: { timeout: 1000 } })
-      .set('Content-Type', 'application/json');
+    const resp = await fetch(`${base}/eslint/json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'console.log(1)', filename: 'code.js', options: { timeout: 1000 } })
+    });
     expect(resp.status).toBe(200);
-    const body: any = resp.body;
+    const body: any = await resp.json();
     expect(body.success).toBe(true);
     expect(body.exit_code).toBe(0);
     expect(body.file_count).toBe(1);
@@ -189,64 +204,67 @@ describe('Integration: Linter API routes', () => {
   it('GET /eslint/json/:encoded decodes deflate+base64 and returns result', async () => {
     const content = 'console.log(2)';
     const compressed = deflateRawSync(Buffer.from(content, 'utf-8')).toString('base64');
-    const resp = await request(app).get(`/eslint/json/${encodeURIComponent(compressed)}`);
+    const resp = await fetch(`${base}/eslint/json/${encodeURIComponent(compressed)}`);
     expect(resp.status).toBe(200);
-    const body: any = resp.body;
+    const body: any = await resp.json();
     expect(body.success).toBe(true);
     expect(body.exit_code).toBe(0);
   });
 
   it('POST uses cache on subsequent identical request', async () => {
     const payload = { content: 'console.log(3)', filename: 'code.js', options: { timeout: 1000 } };
-    const r1 = await request(app).post('/eslint/json').send(payload).set('Content-Type', 'application/json');
+    const r1 = await fetch(`${base}/eslint/json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     expect(r1.status).toBe(200);
-    const r2 = await request(app).post('/eslint/json').send(payload).set('Content-Type', 'application/json');
+    const r2 = await fetch(`${base}/eslint/json`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     expect(r2.status).toBe(200);
-    const body2: any = r2.body;
+    const body2: any = await r2.json();
     expect(body2.success).toBe(true);
   });
 
   it('POST /eslint/json/async returns job id and job completes', async () => {
-    const resp = await request(app)
-      .post('/eslint/json/async')
-      .send({ content: 'console.log(4)', filename: 'code.js', options: { timeout: 1000 } })
-      .set('Content-Type', 'application/json');
+    const resp = await fetch(`${base}/eslint/json/async`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'console.log(4)', filename: 'code.js', options: { timeout: 1000 } })
+    });
     expect(resp.status).toBe(202);
-    const body: any = resp.body;
+    const body: any = await resp.json();
     expect(body.job_id).toBeTruthy();
 
     // Poll status
     let status = 'pending';
     for (let i = 0; i < 10 && status !== 'completed'; i++) {
       await new Promise(r => setTimeout(r, 20));
-      const s = await request(app).get(`/jobs/${body.job_id}`);
-      const sb: any = s.body;
+      const s = await fetch(`${base}/jobs/${body.job_id}`);
+      const sb: any = await s.json();
       status = sb.status;
     }
-    const final = await request(app).get(`/jobs/${body.job_id}`);
-    const finalBody: any = final.body;
+    const final = await fetch(`${base}/jobs/${body.job_id}`);
+    const finalBody: any = await final.json();
     expect(finalBody.status).toBe('completed');
     expect(finalBody.result.success).toBe(true);
   });
 
   it('Validation error for invalid linter parameter', async () => {
-    const resp = await request(app)
-      .post('/invalidlinter/json')
-      .send({ content: 'x', filename: 'code.js' })
-      .set('Content-Type', 'application/json');
+    const resp = await fetch(`${base}/invalidlinter/json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'x', filename: 'code.js' })
+    });
     expect(resp.status).toBe(400);
-    const body: any = resp.body;
+    const body: any = await resp.json();
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('INVALID_PARAMETERS');
   });
 
   it('Validation error when POST missing content and archive', async () => {
-    const resp = await request(app)
-      .post('/eslint/json')
-      .send({ options: {} })
-      .set('Content-Type', 'application/json');
+    const resp = await fetch(`${base}/eslint/json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ options: {} })
+    });
     expect(resp.status).toBe(400);
-    const body: any = resp.body;
+    const body: any = await resp.json();
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('VALIDATION_ERROR');
   });

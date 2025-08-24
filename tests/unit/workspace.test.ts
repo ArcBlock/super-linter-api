@@ -2,7 +2,7 @@ import { WorkspaceManager } from '../../src/services/workspace';
 import { TestHelpers } from '../utils/testHelpers';
 import { WorkspaceError, ContentTooLargeError } from '../../src/types/errors';
 import { promises as fs } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import * as tar from 'tar';
 import { gzip } from 'zlib';
 import { promisify } from 'util';
