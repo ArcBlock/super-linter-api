@@ -127,7 +127,7 @@ jobs:
 
     strategy:
       matrix:
-        dockerfile: ['Dockerfile.superlinter']
+        dockerfile: ['Dockerfile']
 
     steps:
       - name: 📥 Checkout code
@@ -139,9 +139,6 @@ jobs:
       - name: 🐳 Build Docker image for scanning
         run: |
           IMAGE_NAME="super-linter-api-scan:latest"
-          if [[ "${{ matrix.dockerfile }}" == "Dockerfile.superlinter" ]]; then
-            IMAGE_NAME="super-linter-api-scan:superlinter"
-          fi
           docker build -f ${{ matrix.dockerfile }} -t $IMAGE_NAME .
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 

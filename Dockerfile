@@ -49,8 +49,8 @@ COPY --from=builder /app/scripts ./scripts
 RUN mkdir -p data tmp logs
 
 # Copy entrypoint script
-COPY docker-entrypoint-superlinter.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint-superlinter.sh
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create non-root user for running the API (super-linter already has users)
 RUN addgroup -g 1002 -S apiuser && \
@@ -76,7 +76,7 @@ ENV NODE_ENV=production \
     DEFAULT_WORKSPACE=/tmp/lint
 
 # Use custom entrypoint that supports both Super-linter and our API
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint-superlinter.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Default command
 CMD ["pnpm", "start"]

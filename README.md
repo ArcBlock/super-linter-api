@@ -61,7 +61,7 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ```bash
 # Build the Super-linter enabled image
-docker build -f Dockerfile.superlinter -t super-linter-api .
+docker build -t super-linter-api .
 
 # Run with full linter support
 docker run -p 3000:3000 super-linter-api
@@ -102,7 +102,7 @@ pnpm start
 
 ```bash
 # Build the Super-linter API image (includes all 50+ linters)
-docker build -f Dockerfile.superlinter -t super-linter-api .
+docker build -t super-linter-api .
 ```
 
 ## 🔧 API Usage
@@ -283,7 +283,7 @@ tests/
 └── utils/           # Test utilities
 
 docker/
-└── Dockerfile.superlinter  # Super-linter based image with all 50+ linters
+└── Dockerfile  # Super-linter based image with all 50+ linters
 ```
 
 ## 🧪 Testing
@@ -316,7 +316,7 @@ pnpm test src/services/linter.test.ts
 
 ```bash
 # Build (requires ~6GB disk space)
-docker build -f Dockerfile.superlinter -t super-linter-api .
+docker build -t super-linter-api .
 
 # Run with all 50+ linters
 docker run -p 3000:3000 super-linter-api
@@ -330,7 +330,7 @@ services:
   super-linter-api:
     build:
       context: .
-      dockerfile: Dockerfile.superlinter
+      dockerfile: Dockerfile
     ports:
       - '3000:3000'
     environment:

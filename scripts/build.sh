@@ -105,7 +105,7 @@ check_prerequisites() {
     
     # Check required files
     local required_files=(
-        "Dockerfile.superlinter"
+        "Dockerfile"
         "src/server.ts"
         "pnpm-lock.yaml"
     )
@@ -170,7 +170,7 @@ build_superlinter_image() {
         platform_flag="--platform linux/amd64"
     fi
     
-    if ! docker build $NO_CACHE $platform_flag -f Dockerfile.superlinter -t "$image_name" -t "$latest_tag" .; then
+    if ! docker build $NO_CACHE $platform_flag -f Dockerfile -t "$image_name" -t "$latest_tag" .; then
         log_error "Failed to build Super-linter image"
         return 1
     fi
