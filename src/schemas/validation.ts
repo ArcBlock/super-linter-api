@@ -2,12 +2,22 @@ import { z } from 'zod';
 import { LinterType, OutputFormat } from '../types/api';
 
 export const LinterTypeSchema = z.enum([
-  'eslint', 'jshint', 'standard',
-  'pylint', 'flake8', 'black', 'isort',
-  'rubocop', 'standardrb',
-  'golangci-lint', 'gofmt', 'goimports',
-  'rustfmt', 'clippy',
-  'ktlint', 'detekt',
+  'eslint',
+  'jshint',
+  'standard',
+  'pylint',
+  'flake8',
+  'black',
+  'isort',
+  'rubocop',
+  'standardrb',
+  'golangci-lint',
+  'gofmt',
+  'goimports',
+  'rustfmt',
+  'clippy',
+  'ktlint',
+  'detekt',
   'swiftlint',
   'shellcheck',
   'hadolint',
@@ -16,35 +26,42 @@ export const LinterTypeSchema = z.enum([
   'markdownlint',
   'htmlhint',
   'stylelint',
-  'phpcs', 'phpstan',
+  'phpcs',
+  'phpstan',
   'cppcheck',
   'checkstyle',
   'pmd',
-  'spotbugs'
+  'spotbugs',
 ] as const);
 
 export const OutputFormatSchema = z.enum(['json', 'text', 'sarif'] as const);
 
-export const LinterOptionsSchema = z.object({
-  validate_all: z.boolean().optional(),
-  exclude_patterns: z.array(z.string()).optional(),
-  include_patterns: z.array(z.string()).optional(),
-  log_level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(),
-  timeout: z.number().int().min(1000).max(600000).optional(), // 1s to 10min
-  fix: z.boolean().optional(),
-  config_file: z.string().optional(),
-  rules: z.record(z.string(), z.any()).optional(),
-}).strict();
+export const LinterOptionsSchema = z
+  .object({
+    validate_all: z.boolean().optional(),
+    exclude_patterns: z.array(z.string()).optional(),
+    include_patterns: z.array(z.string()).optional(),
+    log_level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(),
+    timeout: z.number().int().min(1000).max(600000).optional(), // 1s to 10min
+    fix: z.boolean().optional(),
+    config_file: z.string().optional(),
+    rules: z.record(z.string(), z.any()).optional(),
+  })
+  .strict();
 
-export const LintRequestSchema = z.object({
-  content: z.union([z.string(), z.instanceof(Buffer)]),
-  options: LinterOptionsSchema.optional(),
-}).strict();
+export const LintRequestSchema = z
+  .object({
+    content: z.union([z.string(), z.instanceof(Buffer)]),
+    options: LinterOptionsSchema.optional(),
+  })
+  .strict();
 
-export const EncodedLintRequestSchema = z.object({
-  encoded_content: z.string(),
-  options: LinterOptionsSchema.optional(),
-}).strict();
+export const EncodedLintRequestSchema = z
+  .object({
+    encoded_content: z.string(),
+    options: LinterOptionsSchema.optional(),
+  })
+  .strict();
 
 // URL parameter validation
 export const LinterParamSchema = z.object({
@@ -63,44 +80,82 @@ export const JobParamSchema = z.object({
 });
 
 // Query parameter validation
-export const LintQuerySchema = z.object({
-  validate_all: z.string().transform(val => val === 'true').optional(),
-  exclude_patterns: z.string().transform(val => val.split(',')).optional(),
-  include_patterns: z.string().transform(val => val.split(',')).optional(),
-  log_level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(),
-  timeout: z.string().transform(val => parseInt(val, 10)).pipe(z.number().int().min(1000).max(600000)).optional(),
-  fix: z.string().transform(val => val === 'true').optional(),
-}).strict();
+export const LintQuerySchema = z
+  .object({
+    validate_all: z
+      .string()
+      .transform(val => val === 'true')
+      .optional(),
+    exclude_patterns: z
+      .string()
+      .transform(val => val.split(','))
+      .optional(),
+    include_patterns: z
+      .string()
+      .transform(val => val.split(','))
+      .optional(),
+    log_level: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(),
+    timeout: z
+      .string()
+      .transform(val => parseInt(val, 10))
+      .pipe(z.number().int().min(1000).max(600000))
+      .optional(),
+    fix: z
+      .string()
+      .transform(val => val === 'true')
+      .optional(),
+  })
+  .strict();
 
 // Content size validation
 export const MAX_CONTENT_SIZE = 50 * 1024 * 1024; // 50MB
 export const MAX_ENCODED_SIZE = 100 * 1024 * 1024; // 100MB for base64 encoded
 
-export const ContentSizeSchema = z.string()
-  .max(MAX_CONTENT_SIZE);
+export const ContentSizeSchema = z.string().max(MAX_CONTENT_SIZE);
 
-export const EncodedContentSizeSchema = z.string()
-  .max(MAX_ENCODED_SIZE);
+export const EncodedContentSizeSchema = z.string().max(MAX_ENCODED_SIZE);
 
 // File extension validation
 export const ALLOWED_EXTENSIONS = [
-  '.js', '.jsx', '.ts', '.tsx', '.vue',
-  '.py', '.pyi',
-  '.rb', '.rake',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.vue',
+  '.py',
+  '.pyi',
+  '.rb',
+  '.rake',
   '.go',
   '.rs',
-  '.kt', '.kts',
+  '.kt',
+  '.kts',
   '.swift',
-  '.sh', '.bash', '.zsh', '.fish',
-  '.yml', '.yaml',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.fish',
+  '.yml',
+  '.yaml',
   '.json',
-  '.md', '.markdown',
-  '.html', '.htm',
-  '.css', '.scss', '.sass', '.less',
+  '.md',
+  '.markdown',
+  '.html',
+  '.htm',
+  '.css',
+  '.scss',
+  '.sass',
+  '.less',
   '.php',
-  '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp',
+  '.c',
+  '.cpp',
+  '.cc',
+  '.cxx',
+  '.h',
+  '.hpp',
   '.java',
-  'Dockerfile', '.dockerfile',
+  'Dockerfile',
+  '.dockerfile',
 ] as const;
 
 export const FileExtensionSchema = z.enum(ALLOWED_EXTENSIONS);
@@ -123,16 +178,21 @@ export const RateLimitSchema = z.object({
 });
 
 // Job creation validation
-export const CreateJobSchema = z.object({
-  content: z.union([z.string(), z.instanceof(Buffer)]),
-  linter_type: LinterTypeSchema,
-  format: OutputFormatSchema,
-  options: LinterOptionsSchema.optional(),
-}).strict();
+export const CreateJobSchema = z
+  .object({
+    content: z.union([z.string(), z.instanceof(Buffer)]),
+    linter_type: LinterTypeSchema,
+    format: OutputFormatSchema,
+    options: LinterOptionsSchema.optional(),
+  })
+  .strict();
 
 // Health check validation
 export const HealthCheckSchema = z.object({
-  include_details: z.string().transform(val => val === 'true').optional(),
+  include_details: z
+    .string()
+    .transform(val => val === 'true')
+    .optional(),
 });
 
 // Validation helper functions
@@ -195,7 +255,7 @@ export const validationMiddleware = {
     try {
       const result = LinterParamSchema.parse(req.params);
       req.validatedParams = result;
-      
+
       // Additional validation for format support
       if (!validateLinterSupportsFormat(result.linter, result.format)) {
         return res.status(400).json({
@@ -207,7 +267,7 @@ export const validationMiddleware = {
           },
         });
       }
-      
+
       next();
     } catch (validationError: any) {
       res.status(400).json({

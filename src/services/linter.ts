@@ -1,8 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
-import { join } from 'path';
-import { promises as fs } from 'fs';
 import winston from 'winston';
-import { LinterType, LinterOptions, OutputFormat } from '../types/api';
+import { LinterType, LinterOptions } from '../types/api';
 import { LinterExecution, LinterResult, LinterConfig, LINTER_CONFIGS } from '../types/linter';
 import { LinterError, TimeoutError, WorkspaceError } from '../types/errors';
 import { WorkspaceManager } from './workspace';
@@ -10,7 +8,7 @@ import { WorkspaceManager } from './workspace';
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 export class LinterRunner {
@@ -31,7 +29,7 @@ export class LinterRunner {
   async runLinter(execution: LinterExecution): Promise<LinterResult> {
     const { linter, workspace_path, options, timeout_ms } = execution;
     const config = LINTER_CONFIGS[linter];
-    
+
     if (!config) {
       throw new LinterError('LINTER_NOT_FOUND', `Linter not supported: ${linter}`);
     }
@@ -48,9 +46,7 @@ export class LinterRunner {
     }
 
     // Filter files by supported extensions
-    const supportedFiles = files.filter(file => 
-      this.isFileSupported(file, config)
-    );
+    const supportedFiles = files.filter(file => this.isFileSupported(file, config));
 
     if (supportedFiles.length === 0) {
       throw new LinterError(
@@ -63,7 +59,7 @@ export class LinterRunner {
 
     try {
       const result = await this.executeLinter(config, workspace_path, options, timeout_ms);
-      
+
       return {
         ...result,
         file_count: supportedFiles.length,
@@ -82,14 +78,14 @@ export class LinterRunner {
 
   private isFileSupported(filename: string, config: LinterConfig): boolean {
     if (filename.toLowerCase() === 'dockerfile' || filename.toLowerCase().endsWith('.dockerfile')) {
-      return config.supported_extensions.includes('Dockerfile') || 
-             config.supported_extensions.includes('.dockerfile');
+      return (
+        config.supported_extensions.includes('Dockerfile') ||
+        config.supported_extensions.includes('.dockerfile')
+      );
     }
-    
+
     const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
-    return config.supported_extensions.some(supportedExt => 
-      supportedExt.toLowerCase() === ext
-    );
+    return config.supported_extensions.some(supportedExt => supportedExt.toLowerCase() === ext);
   }
 
   private async executeLinter(
@@ -104,12 +100,12 @@ export class LinterRunner {
     }
     const processId = `${config.name}_${Date.now()}`;
     const startTime = Date.now();
-    
+
     return new Promise((resolve, reject) => {
       // Prepare command and arguments
       const args = this.buildLinterArgs(config, options);
       const env = this.buildEnvironment(config, options);
-      
+
       logger.debug(`Executing: ${config.executable} ${args.join(' ')}`, {
         linter: config.name,
         workspacePath,
@@ -129,12 +125,12 @@ export class LinterRunner {
       let stderr = '';
 
       // Collect stdout
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', data => {
         stdout += data.toString();
       });
 
       // Collect stderr
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', data => {
         stderr += data.toString();
       });
 
@@ -148,7 +144,7 @@ export class LinterRunner {
             child.kill('SIGKILL');
           }
         }, 5000); // Force kill after 5 seconds
-        
+
         this.runningProcesses.delete(processId);
         reject(new TimeoutError(`Linter timed out after ${timeoutMs}ms`, timeoutMs));
       }, timeoutMs);
@@ -158,9 +154,9 @@ export class LinterRunner {
         clearTimeout(timer);
         finished = true;
         this.runningProcesses.delete(processId);
-        
+
         const executionTime = Date.now() - startTime;
-        
+
         logger.debug(`Linter finished`, {
           linter: config.name,
           exitCode: code,
@@ -177,7 +173,7 @@ export class LinterRunner {
 
         try {
           const parsed = this.parseLinterOutput(config, stdout, stderr, code || 0);
-          
+
           resolve({
             success: code === 0 || this.isSuccessfulExitCode(config, code || 0),
             exit_code: code || 0,
@@ -189,31 +185,36 @@ export class LinterRunner {
             issues: this.extractIssues(parsed, config),
           });
         } catch (parseError: any) {
-          reject(new LinterError(
-            'LINTER_EXECUTION_FAILED',
-            `Failed to parse linter output: ${parseError.message}`,
-            { linter: config.name, parseError: parseError.message }
-          ));
+          reject(
+            new LinterError(
+              'LINTER_EXECUTION_FAILED',
+              `Failed to parse linter output: ${parseError.message}`,
+              { linter: config.name, parseError: parseError.message }
+            )
+          );
         }
       });
 
       // Handle process errors
-      child.on('error', (error) => {
+      child.on('error', error => {
         clearTimeout(timer);
         this.runningProcesses.delete(processId);
-        
+
         if (error.message.includes('ENOENT')) {
-          reject(new LinterError(
-            'LINTER_NOT_FOUND',
-            `Linter executable not found: ${config.executable}`,
-            { linter: config.name, executable: config.executable }
-          ));
+          reject(
+            new LinterError(
+              'LINTER_NOT_FOUND',
+              `Linter executable not found: ${config.executable}`,
+              { linter: config.name, executable: config.executable }
+            )
+          );
         } else {
-          reject(new LinterError(
-            'LINTER_EXECUTION_FAILED',
-            `Process error: ${(error).message}`,
-            { linter: config.name, error: (error).message }
-          ));
+          reject(
+            new LinterError('LINTER_EXECUTION_FAILED', `Process error: ${error.message}`, {
+              linter: config.name,
+              error: error.message,
+            })
+          );
         }
       });
     });
@@ -221,7 +222,7 @@ export class LinterRunner {
 
   private buildLinterArgs(config: LinterConfig, options: LinterOptions): string[] {
     const args = [...config.args];
-    
+
     // Add common options
     if (options.fix && config.fix_supported) {
       switch (config.name) {
@@ -229,8 +230,8 @@ export class LinterRunner {
           args.push('--fix');
           break;
         // case 'prettier': // prettier not in LinterType enum
-          // args.push('--write');
-          // break;
+        // args.push('--write');
+        // break;
         case 'black':
           // Remove --check and --diff for fix mode
           const checkIndex = args.indexOf('--check');
@@ -260,7 +261,7 @@ export class LinterRunner {
 
   private buildEnvironment(config: LinterConfig, options: LinterOptions): Record<string, string> {
     const env = { ...config.env_vars };
-    
+
     // Add log level mapping
     if (options.log_level) {
       switch (config.name) {
@@ -278,7 +279,7 @@ export class LinterRunner {
     env.DEFAULT_WORKSPACE = '/tmp/lint';
     env.RUN_LOCAL = 'true';
     env.OUTPUT_DETAILS = 'detailed';
-    
+
     if (options.validate_all) {
       env.VALIDATE_ALL_CODEBASE = 'true';
     }
@@ -300,7 +301,12 @@ export class LinterRunner {
     }
   }
 
-  private parseLinterOutput(config: LinterConfig, stdout: string, stderr: string, exitCode: number): any {
+  private parseLinterOutput(
+    config: LinterConfig,
+    stdout: string,
+    stderr: string,
+    exitCode: number
+  ): any {
     // Try JSON parser first if available
     if (config.output_parsers.json && this.isJsonOutput(config, stdout)) {
       try {
@@ -336,7 +342,7 @@ export class LinterRunner {
 
     // ESLint format
     if (Array.isArray(parsedOutput)) {
-      return parsedOutput.flatMap(file => 
+      return parsedOutput.flatMap(file =>
         (file.messages || []).map((msg: any) => ({
           file: file.filePath || 'unknown',
           line: msg.line,
@@ -350,7 +356,7 @@ export class LinterRunner {
 
     // Generic format - try to extract common patterns
     const issues = [];
-    
+
     if (parsedOutput.files) {
       // Some linters group by files
       for (const file of Object.values(parsedOutput.files)) {
@@ -379,7 +385,7 @@ export class LinterRunner {
 
   private cleanup(): void {
     logger.info(`Cleaning up ${this.runningProcesses.size} running processes`);
-    
+
     for (const [processId, process] of this.runningProcesses.entries()) {
       try {
         process.kill('SIGTERM');
@@ -392,29 +398,31 @@ export class LinterRunner {
         logger.warn(`Failed to kill process ${processId}: ${(error as Error).message}`);
       }
     }
-    
+
     this.runningProcesses.clear();
   }
 
-  async checkLinterAvailability(linter: LinterType): Promise<{ available: boolean; version?: string; error?: string }> {
+  async checkLinterAvailability(
+    linter: LinterType
+  ): Promise<{ available: boolean; version?: string; error?: string }> {
     const config = LINTER_CONFIGS[linter];
     if (!config) {
       return { available: false, error: 'Linter not configured' };
     }
 
     try {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const child = spawn(config.executable, ['--version'], {
           stdio: 'pipe',
           timeout: 5000,
         });
 
         let output = '';
-        child.stdout?.on('data', (data) => {
+        child.stdout?.on('data', data => {
           output += data.toString();
         });
 
-        child.on('close', (code) => {
+        child.on('close', code => {
           if (code === 0) {
             const version = this.extractVersion(output);
             resolve({ available: true, version });
@@ -444,9 +452,11 @@ export class LinterRunner {
     return versionMatch?.[1] || output.trim().split('\n')[0] || 'unknown';
   }
 
-  async getAllLinterStatus(): Promise<Record<LinterType, { available: boolean; version?: string }>> {
+  async getAllLinterStatus(): Promise<
+    Record<LinterType, { available: boolean; version?: string }>
+  > {
     const results: Record<string, { available: boolean; version?: string }> = {};
-    
+
     const linters = Object.keys(LINTER_CONFIGS) as LinterType[];
     const checks = await Promise.allSettled(
       linters.map(linter => this.checkLinterAvailability(linter))
@@ -455,7 +465,7 @@ export class LinterRunner {
     for (let i = 0; i < linters.length; i++) {
       const linter = linters[i]!;
       const check = checks[i]!;
-      
+
       if (check.status === 'fulfilled') {
         const result: { available: boolean; version?: string } = {
           available: check.value.available,

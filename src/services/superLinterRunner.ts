@@ -1,6 +1,4 @@
-import { spawn, ChildProcess } from 'child_process';
-import { join } from 'path';
-import { promises as fs } from 'fs';
+import { spawn } from 'child_process';
 import winston from 'winston';
 import { LinterType, LinterOptions } from '../types/api';
 import { LinterExecution, LinterResult, LinterIssue } from '../types/linter';
@@ -11,7 +9,7 @@ import { LinterRunner } from './linter';
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 /**
@@ -38,7 +36,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.js'],
   },
-  
+
   // Python
   pylint: {
     executable: 'pylint',
@@ -76,7 +74,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'text',
     extensions: ['.py'],
   },
-  
+
   // Shell
   shellcheck: {
     executable: 'shellcheck',
@@ -84,7 +82,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.sh', '.bash', '.dash', '.ksh'],
   },
-  
+
   // Go
   'golangci-lint': {
     executable: 'golangci-lint',
@@ -98,7 +96,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'text',
     extensions: ['.go'],
   },
-  
+
   // Ruby
   rubocop: {
     executable: 'rubocop',
@@ -106,7 +104,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.rb'],
   },
-  
+
   // Docker
   hadolint: {
     executable: 'hadolint',
@@ -114,7 +112,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['Dockerfile', '.dockerfile'],
   },
-  
+
   // YAML
   yamllint: {
     executable: 'yamllint',
@@ -122,7 +120,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'text',
     extensions: ['.yml', '.yaml'],
   },
-  
+
   // JSON
   jsonlint: {
     executable: 'jsonlint-php', // or 'jsonlint' depending on availability
@@ -130,7 +128,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'text',
     extensions: ['.json'],
   },
-  
+
   // Markdown
   markdownlint: {
     executable: 'markdownlint',
@@ -138,7 +136,7 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.md'],
   },
-  
+
   // CSS
   stylelint: {
     executable: 'stylelint',
@@ -156,10 +154,12 @@ export class SuperLinterRunner extends LinterRunner {
   override async runLinter(execution: LinterExecution): Promise<LinterResult> {
     const { linter, workspace_path, options, timeout_ms } = execution;
     const config = SUPERLINTER_CONFIGS[linter as keyof typeof SUPERLINTER_CONFIGS];
-    
+
     if (!config) {
       // Fallback to parent class for unsupported linters
-      logger.warn(`Linter ${linter} not configured for Super-linter, falling back to standard runner`);
+      logger.warn(
+        `Linter ${linter} not configured for Super-linter, falling back to standard runner`
+      );
       return super.runLinter(execution);
     }
 
@@ -174,13 +174,13 @@ export class SuperLinterRunner extends LinterRunner {
     // Get files to lint
     const allFiles = await this.workspaceManager.getWorkspaceFiles(workspace_path);
     logger.debug(`Found ${allFiles?.length || 0} files in workspace`, { allFiles });
-    
+
     if (!allFiles) {
       throw new WorkspaceError('Failed to get workspace files');
     }
-    
+
     const filteredFiles = this.filterFilesByExtensions(allFiles, [...config.extensions]);
-    
+
     if (filteredFiles.length === 0) {
       return {
         success: true,
@@ -195,7 +195,7 @@ export class SuperLinterRunner extends LinterRunner {
     }
 
     const startTime = Date.now();
-    
+
     try {
       const result = await this.executeSuperlinter(
         config.executable,
@@ -206,11 +206,11 @@ export class SuperLinterRunner extends LinterRunner {
       );
 
       const execution_time_ms = Date.now() - startTime;
-      
+
       // Parse the output based on format
       let parsed_output: any;
       let issues: LinterIssue[] = [];
-      
+
       try {
         if (config.outputFormat === 'json' && result.stdout) {
           parsed_output = JSON.parse(result.stdout);
@@ -235,15 +235,17 @@ export class SuperLinterRunner extends LinterRunner {
         file_count: filteredFiles.length,
         issues,
       };
-
     } catch (error) {
       const execution_time_ms = Date.now() - startTime;
-      
+
       if (error instanceof TimeoutError) {
         throw error;
       }
-      
-      throw new LinterError('LINTER_EXECUTION_FAILED', `Failed to execute ${linter}: ${(error as Error).message}`);
+
+      throw new LinterError(
+        'LINTER_EXECUTION_FAILED',
+        `Failed to execute ${linter}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -429,7 +431,7 @@ export class SuperLinterRunner extends LinterRunner {
 
     try {
       const lines = output.split('\n');
-      
+
       lines.forEach((line, index) => {
         if (line.trim()) {
           // Basic text parsing - can be enhanced per linter
@@ -440,7 +442,7 @@ export class SuperLinterRunner extends LinterRunner {
             message: line.trim(),
             source: linter,
           };
-          
+
           // Try to extract more specific information
           const lineMatch = line.match(/(\S+):(\d+):(\d+):\s*(.+)/);
           if (lineMatch && lineMatch[1] && lineMatch[2] && lineMatch[3] && lineMatch[4]) {
@@ -449,7 +451,7 @@ export class SuperLinterRunner extends LinterRunner {
             issue.column = parseInt(lineMatch[3], 10);
             issue.message = lineMatch[4];
           }
-          
+
           issues.push(issue);
         }
       });
@@ -479,7 +481,7 @@ export class SuperLinterRunner extends LinterRunner {
    */
   async getAvailableSuperlinterLinters(): Promise<string[]> {
     const available: string[] = [];
-    
+
     for (const [linter, config] of Object.entries(SUPERLINTER_CONFIGS)) {
       try {
         const result = await this.executeSuperlinter(
@@ -489,7 +491,7 @@ export class SuperLinterRunner extends LinterRunner {
           5000,
           {}
         );
-        
+
         if (result.exit_code === 0) {
           available.push(linter);
         }
@@ -497,7 +499,7 @@ export class SuperLinterRunner extends LinterRunner {
         // Linter not available
       }
     }
-    
+
     return available;
   }
 }

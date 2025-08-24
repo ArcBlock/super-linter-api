@@ -4,7 +4,7 @@ import { LintResult, LintJob, ApiMetric, JobStatus } from '../types/database';
 
 export class DatabaseService {
   private dbPath: string;
-  
+
   private toSqlDateTime(dt: string): string {
     try {
       // Normalize to 'YYYY-MM-DD HH:MM:SS' for proper SQLite comparison
@@ -20,7 +20,9 @@ export class DatabaseService {
         const seconds = pad(d.getUTCSeconds());
         return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
     // Fallback: best-effort normalization
     return dt.replace('T', ' ').replace('Z', '').replace(/\.\d+/, '');
   }
@@ -33,14 +35,14 @@ export class DatabaseService {
     const { execSync } = require('child_process');
     const { existsSync, mkdirSync } = require('fs');
     const { dirname } = require('path');
-    
+
     try {
       // Ensure directory exists
       const dataDir = dirname(this.dbPath);
       if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true });
       }
-      
+
       // Use the schema from scripts folder
       const schemaPath = join(__dirname, '..', '..', 'scripts', 'schema.sql');
       execSync(`sqlite3 "${this.dbPath}" < "${schemaPath}"`, { stdio: 'pipe' });
@@ -59,7 +61,7 @@ export class DatabaseService {
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           expires_at TEXT NOT NULL
         );
-        
+
         CREATE TABLE IF NOT EXISTS lint_jobs (
           id TEXT PRIMARY KEY,
           job_id TEXT UNIQUE NOT NULL,
@@ -77,7 +79,7 @@ export class DatabaseService {
           started_at TEXT,
           completed_at TEXT
         );
-        
+
         CREATE TABLE IF NOT EXISTS api_metrics (
           id TEXT PRIMARY KEY,
           endpoint TEXT NOT NULL,
@@ -98,13 +100,13 @@ export class DatabaseService {
     try {
       // For complex JSON queries, we need to be very careful with escaping
       let processedSql = sql;
-      
+
       // Replace ? placeholders with properly escaped parameters
-      params.forEach((param) => {
+      params.forEach(param => {
         const placeholder = '?';
         if (processedSql.includes(placeholder)) {
           let escapedParam: string;
-          
+
           if (param === null || param === undefined) {
             escapedParam = 'NULL';
           } else if (typeof param === 'string') {
@@ -136,25 +138,28 @@ export class DatabaseService {
               .replace(/\x00/g, '\\0');
             escapedParam = `'${escaped}'`;
           }
-          
+
           processedSql = processedSql.replace(placeholder, escapedParam);
         }
       });
-      
-      const result = execSync(`sqlite3 "${this.dbPath}" "${processedSql}"`, { 
+
+      const result = execSync(`sqlite3 "${this.dbPath}" "${processedSql}"`, {
         encoding: 'utf-8',
-        maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
       });
-      
+
       if (!result.trim()) return [];
-      
-      return result.trim().split('\n').map(row => {
-        try {
-          return JSON.parse(row);
-        } catch {
-          return row.split('|');
-        }
-      });
+
+      return result
+        .trim()
+        .split('\n')
+        .map(row => {
+          try {
+            return JSON.parse(row);
+          } catch {
+            return row.split('|');
+          }
+        });
     } catch (error: any) {
       console.error('Database query failed:', error);
       throw error;
@@ -163,8 +168,8 @@ export class DatabaseService {
 
   private exec(sql: string): void {
     try {
-      execSync(`sqlite3 "${this.dbPath}" "${sql}"`, { 
-        encoding: 'utf-8' 
+      execSync(`sqlite3 "${this.dbPath}" "${sql}"`, {
+        encoding: 'utf-8',
       });
     } catch (error) {
       console.error('Database exec failed:', error);
@@ -186,7 +191,11 @@ export class DatabaseService {
   }
 
   // Cache operations
-  async getCachedResult(contentHash: string, linterType: string, optionsHash: string): Promise<LintResult | null> {
+  async getCachedResult(
+    contentHash: string,
+    linterType: string,
+    optionsHash: string
+  ): Promise<LintResult | null> {
     const sql = `
       SELECT json_object(
         'id', id,
@@ -200,17 +209,17 @@ export class DatabaseService {
         'created_at', created_at,
         'expires_at', expires_at
       ) as json_result
-      FROM lint_results 
+      FROM lint_results
       WHERE content_hash = ? AND linter_type = ? AND options_hash = ?
         AND expires_at > datetime('now')
       LIMIT 1;
     `;
-    
+
     const results = this.query(sql, [contentHash, linterType, optionsHash]);
     if (results.length === 0) return null;
     const row = results[0] as any;
     // Normalize datetime fields back to ISO for JS correctness
-    const normalize = (dt?: string) => dt ? dt.replace(' ', 'T') + 'Z' : dt;
+    const normalize = (dt?: string) => (dt ? dt.replace(' ', 'T') + 'Z' : dt);
     row.created_at = normalize(row.created_at);
     row.expires_at = normalize(row.expires_at);
     return row as LintResult;
@@ -218,14 +227,14 @@ export class DatabaseService {
 
   async storeCachedResult(result: Omit<LintResult, 'id'>): Promise<string> {
     const id = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const sql = `
       INSERT INTO lint_results (
-        id, content_hash, linter_type, options_hash, 
+        id, content_hash, linter_type, options_hash,
         result, format, status, error_message, expires_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
-    
+
     const expiresAt = this.toSqlDateTime(result.expires_at);
 
     this.query(sql, [
@@ -237,23 +246,23 @@ export class DatabaseService {
       result.format,
       result.status,
       result.error_message,
-      expiresAt
+      expiresAt,
     ]);
-    
+
     return id;
   }
 
   // Job operations
   async createJob(job: Omit<LintJob, 'id'>): Promise<string> {
     const id = `${job.job_id}`;
-    
+
     // Use parameterized INSERT
     const sql = `
       INSERT INTO lint_jobs (
         id, job_id, linter_type, format, content, archive, filename, options, status, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
-    
+
     const params = [
       id,
       job.job_id,
@@ -264,11 +273,11 @@ export class DatabaseService {
       job.filename || null,
       job.options,
       job.status,
-      job.created_at
+      job.created_at,
     ];
-    
+
     this.query(sql, params);
-    
+
     return id;
   }
 
@@ -293,19 +302,25 @@ export class DatabaseService {
       ) as json_result
       FROM lint_jobs WHERE job_id = ? LIMIT 1;
     `;
-    
+
     const results = this.query(sql, [jobId]);
     if (results.length === 0) return null;
     return results[0];
   }
 
-  async updateJobStatus(jobId: string, status: JobStatus, result?: string, errorMessage?: string, executionTimeMs?: number): Promise<void> {
+  async updateJobStatus(
+    jobId: string,
+    status: JobStatus,
+    result?: string,
+    errorMessage?: string,
+    executionTimeMs?: number
+  ): Promise<void> {
     const now = new Date().toISOString();
-    
+
     // Build the SET clause parts
     const setParts = ['status = ?'];
     const params: any[] = [status];
-    
+
     if (status === 'running') {
       setParts.push('started_at = ?');
       params.push(now);
@@ -313,25 +328,25 @@ export class DatabaseService {
       setParts.push('completed_at = ?');
       params.push(now);
     }
-    
+
     if (result) {
       setParts.push('result = ?');
       params.push(result);
     }
-    
+
     if (errorMessage) {
       setParts.push('error_message = ?');
       params.push(errorMessage);
     }
-    
+
     if (executionTimeMs !== undefined) {
       setParts.push('execution_time_ms = ?');
       params.push(executionTimeMs);
     }
-    
+
     const sql = `UPDATE lint_jobs SET ${setParts.join(', ')} WHERE job_id = ?;`;
     params.push(jobId);
-    
+
     this.query(sql, params);
   }
 
@@ -354,12 +369,12 @@ export class DatabaseService {
         'started_at', started_at,
         'completed_at', completed_at
       ) as json_result
-      FROM lint_jobs 
-      WHERE status = 'pending' 
-      ORDER BY created_at ASC 
+      FROM lint_jobs
+      WHERE status = 'pending'
+      ORDER BY created_at ASC
       LIMIT ${limit};
     `;
-    
+
     const results = this.query(sql);
     return results as any;
   }
@@ -367,14 +382,14 @@ export class DatabaseService {
   // Metrics operations
   async recordMetric(metric: Omit<ApiMetric, 'id' | 'created_at'>): Promise<void> {
     const id = `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const sql = `
       INSERT INTO api_metrics (
-        id, endpoint, method, status_code, response_time_ms, 
+        id, endpoint, method, status_code, response_time_ms,
         cache_hit, linter_type, format, error_type
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
-    
+
     this.query(sql, [
       id,
       metric.endpoint,
@@ -384,7 +399,7 @@ export class DatabaseService {
       metric.cache_hit ? 1 : 0,
       metric.linter_type,
       metric.format,
-      metric.error_type
+      metric.error_type,
     ]);
   }
 
@@ -394,10 +409,10 @@ export class DatabaseService {
     return this.query(sql);
   }
 
-  async getJobStats(): Promise<Array<{status: string, count: number}>> {
+  async getJobStats(): Promise<Array<{ status: string; count: number }>> {
     const sql = `
-      SELECT status, COUNT(*) as count 
-      FROM lint_jobs 
+      SELECT status, COUNT(*) as count
+      FROM lint_jobs
       GROUP BY status;
     `;
     const results = this.query(sql);
@@ -412,13 +427,15 @@ export class DatabaseService {
   // Cleanup operations
   async cleanupExpiredCache(): Promise<number> {
     // Delete expired cache and return number of rows affected
-    return this.deleteAndReturnChanges(`DELETE FROM lint_results WHERE expires_at <= datetime('now')`);
+    return this.deleteAndReturnChanges(
+      `DELETE FROM lint_results WHERE expires_at <= datetime('now')`
+    );
   }
 
   async cleanupOldJobs(olderThanDays = 7): Promise<number> {
     return this.deleteAndReturnChanges(`
-      DELETE FROM lint_jobs 
-      WHERE status IN ('completed', 'failed', 'cancelled') 
+      DELETE FROM lint_jobs
+      WHERE status IN ('completed', 'failed', 'cancelled')
         AND created_at <= datetime('now', '-${olderThanDays} days')
     `);
   }
@@ -429,17 +446,15 @@ export class DatabaseService {
   }
 
   async clearCacheByContent(contentHash: string): Promise<number> {
-    return this.deleteAndReturnChanges(
-      `DELETE FROM lint_results WHERE content_hash = ?`,
-      [contentHash]
-    );
+    return this.deleteAndReturnChanges(`DELETE FROM lint_results WHERE content_hash = ?`, [
+      contentHash,
+    ]);
   }
 
   async clearCacheByLinter(linterType: string): Promise<number> {
-    return this.deleteAndReturnChanges(
-      `DELETE FROM lint_results WHERE linter_type = ?`,
-      [linterType]
-    );
+    return this.deleteAndReturnChanges(`DELETE FROM lint_results WHERE linter_type = ?`, [
+      linterType,
+    ]);
   }
 
   async clearCacheByContentAndLinter(contentHash: string, linterType: string): Promise<number> {
@@ -450,26 +465,26 @@ export class DatabaseService {
   }
 
   // Health check
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy', details: any }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
     try {
       const result = this.query('SELECT 1 as test;');
       const tableCount = this.query(`
-        SELECT COUNT(*) as count FROM sqlite_master 
+        SELECT COUNT(*) as count FROM sqlite_master
         WHERE type='table' AND name NOT LIKE 'sqlite_%';
       `);
-      
+
       return {
         status: 'healthy',
         details: {
           connection: 'ok',
           tables: tableCount[0]?.count || 0,
-          dbPath: this.dbPath
-        }
+          dbPath: this.dbPath,
+        },
       };
     } catch (error: any) {
       return {
         status: 'unhealthy',
-        details: { error: error.message, dbPath: this.dbPath }
+        details: { error: error.message, dbPath: this.dbPath },
       };
     }
   }

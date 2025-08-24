@@ -1,8 +1,6 @@
 import { promises as fs } from 'fs';
 import { existsSync, mkdirSync } from 'fs';
-import { join, resolve, relative, basename } from 'path';
-import { createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
+import { join, resolve, relative } from 'path';
 import { extract as Extract } from 'tar';
 import { createGunzip } from 'zlib';
 import { createHash } from 'crypto';
@@ -13,7 +11,7 @@ import winston from 'winston';
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 export class WorkspaceManager {
@@ -29,23 +27,44 @@ export class WorkspaceManager {
     this.maxFileSize = 10 * 1024 * 1024; // 10MB per file
     this.maxTotalSize = 500 * 1024 * 1024; // 500MB total
     this.maxFiles = 10000;
-    
+
     this.allowedExtensions = new Set([
-      '.js', '.jsx', '.ts', '.tsx', '.vue',
-      '.py', '.pyi',
-      '.rb', '.rake',
+      '.js',
+      '.jsx',
+      '.ts',
+      '.tsx',
+      '.vue',
+      '.py',
+      '.pyi',
+      '.rb',
+      '.rake',
       '.go',
       '.rs',
-      '.kt', '.kts',
+      '.kt',
+      '.kts',
       '.swift',
-      '.sh', '.bash', '.zsh', '.fish',
-      '.yml', '.yaml',
+      '.sh',
+      '.bash',
+      '.zsh',
+      '.fish',
+      '.yml',
+      '.yaml',
       '.json',
-      '.md', '.markdown',
-      '.html', '.htm',
-      '.css', '.scss', '.sass', '.less',
+      '.md',
+      '.markdown',
+      '.html',
+      '.htm',
+      '.css',
+      '.scss',
+      '.sass',
+      '.less',
       '.php',
-      '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp',
+      '.c',
+      '.cpp',
+      '.cc',
+      '.cxx',
+      '.h',
+      '.hpp',
       '.java',
       '.dockerfile',
       '.xml',
@@ -91,9 +110,12 @@ export class WorkspaceManager {
     const normalizedPath = resolve(filePath);
     const normalizedBaseDir = resolve(this.baseDir);
     const relativePath = relative(normalizedBaseDir, normalizedPath);
-    
+
     // Path must be within base directory
-    if (relativePath.startsWith('..') || relative(normalizedBaseDir, normalizedPath).startsWith('..')) {
+    if (
+      relativePath.startsWith('..') ||
+      relative(normalizedBaseDir, normalizedPath).startsWith('..')
+    ) {
       return false;
     }
 
@@ -107,13 +129,16 @@ export class WorkspaceManager {
     return this.allowedExtensions.has(ext) || filename.toLowerCase() === 'dockerfile';
   }
 
-  async createWorkspaceFromBuffer(content: Buffer, contentType: 'tar.gz' | 'text' = 'text'): Promise<WorkspaceInfo> {
+  async createWorkspaceFromBuffer(
+    content: Buffer,
+    contentType: 'tar.gz' | 'text' = 'text'
+  ): Promise<WorkspaceInfo> {
     const workspaceId = this.generateWorkspaceId();
     const workspacePath = join(this.baseDir, workspaceId);
-    
+
     try {
       await fs.mkdir(workspacePath, { recursive: true });
-      
+
       if (contentType === 'tar.gz') {
         return await this.extractTarGz(content, workspacePath, workspaceId);
       } else {
@@ -124,25 +149,25 @@ export class WorkspaceManager {
       await this.cleanupWorkspace(workspacePath).catch(() => {});
       throw new WorkspaceError(`Failed to create workspace: ${error.message}`, {
         workspaceId,
-        error: error.message
+        error: error.message,
       });
     }
   }
 
-  private async createSingleFileWorkspace(content: Buffer, workspacePath: string, workspaceId: string): Promise<WorkspaceInfo> {
+  private async createSingleFileWorkspace(
+    content: Buffer,
+    workspacePath: string,
+    workspaceId: string
+  ): Promise<WorkspaceInfo> {
     if (content.length > this.maxFileSize) {
-      throw new ContentTooLargeError(
-        'File too large',
-        this.maxFileSize,
-        content.length
-      );
+      throw new ContentTooLargeError('File too large', this.maxFileSize, content.length);
     }
 
     const filename = 'code.txt'; // Default filename for single file
     const filePath = join(workspacePath, filename);
-    
+
     await fs.writeFile(filePath, content);
-    
+
     return {
       path: workspacePath,
       files: [filename],
@@ -152,13 +177,13 @@ export class WorkspaceManager {
     };
   }
 
-  private async extractTarGz(content: Buffer, workspacePath: string, workspaceId: string): Promise<WorkspaceInfo> {
+  private async extractTarGz(
+    content: Buffer,
+    workspacePath: string,
+    workspaceId: string
+  ): Promise<WorkspaceInfo> {
     if (content.length > this.maxTotalSize) {
-      throw new ContentTooLargeError(
-        'Archive too large',
-        this.maxTotalSize,
-        content.length
-      );
+      throw new ContentTooLargeError('Archive too large', this.maxTotalSize, content.length);
     }
 
     const files: string[] = [];
@@ -184,21 +209,21 @@ export class WorkspaceManager {
 
           // File size limit
           if (entry.size > this.maxFileSize) {
-            reject(new ContentTooLargeError(
-              `File too large: ${path}`,
-              this.maxFileSize,
-              entry.size
-            ));
+            reject(
+              new ContentTooLargeError(`File too large: ${path}`, this.maxFileSize, entry.size)
+            );
             return false;
           }
 
           // Total size limit
           if (totalSize + entry.size > this.maxTotalSize) {
-            reject(new ContentTooLargeError(
-              'Archive contents too large',
-              this.maxTotalSize,
-              totalSize + entry.size
-            ));
+            reject(
+              new ContentTooLargeError(
+                'Archive contents too large',
+                this.maxTotalSize,
+                totalSize + entry.size
+              )
+            );
             return false;
           }
 
@@ -219,19 +244,23 @@ export class WorkspaceManager {
       });
 
       const gunzip = createGunzip();
-      
+
       extractStream.on('error', (error: Error) => {
-        reject(new WorkspaceError(`Failed to extract archive: ${error.message}`, {
-          workspaceId,
-          error: error.message
-        }));
+        reject(
+          new WorkspaceError(`Failed to extract archive: ${error.message}`, {
+            workspaceId,
+            error: error.message,
+          })
+        );
       });
 
       gunzip.on('error', (error: Error) => {
-        reject(new WorkspaceError(`Failed to decompress archive: ${error.message}`, {
-          workspaceId,
-          error: error.message
-        }));
+        reject(
+          new WorkspaceError(`Failed to decompress archive: ${error.message}`, {
+            workspaceId,
+            error: error.message,
+          })
+        );
       });
 
       extractStream.on('end', () => {
@@ -258,15 +287,11 @@ export class WorkspaceManager {
       }
 
       const buffer = Buffer.from(encodedContent, 'base64');
-      
+
       // Try to detect if it's a gzipped tar archive
-      const isGzipped = buffer.length > 2 && 
-        buffer[0] === 0x1f && buffer[1] === 0x8b;
-      
-      return await this.createWorkspaceFromBuffer(
-        buffer, 
-        isGzipped ? 'tar.gz' : 'text'
-      );
+      const isGzipped = buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b;
+
+      return await this.createWorkspaceFromBuffer(buffer, isGzipped ? 'tar.gz' : 'text');
     } catch (error: any) {
       if (error instanceof WorkspaceError || error instanceof ContentTooLargeError) {
         throw error;
@@ -278,12 +303,12 @@ export class WorkspaceManager {
   async createWorkspaceFromText(content: string, filename = 'code.txt'): Promise<WorkspaceInfo> {
     const buffer = Buffer.from(content, 'utf-8');
     const workspaceInfo = await this.createWorkspaceFromBuffer(buffer, 'text');
-    
+
     // Rename the file to the specified filename if provided
     if (filename !== 'code.txt') {
       const oldPath = join(workspaceInfo.path, 'code.txt');
       const newPath = join(workspaceInfo.path, filename);
-      
+
       try {
         await fs.rename(oldPath, newPath);
         workspaceInfo.files = [filename];
@@ -291,21 +316,21 @@ export class WorkspaceManager {
         logger.warn(`Failed to rename file: ${error.message}`);
       }
     }
-    
+
     return workspaceInfo;
   }
 
   async getWorkspaceFiles(workspacePath: string): Promise<string[]> {
     try {
       const files: string[] = [];
-      
+
       async function scanDirectory(dir: string, relativePath = ''): Promise<void> {
         const entries = await fs.readdir(dir, { withFileTypes: true });
-        
+
         for (const entry of entries) {
           const fullPath = join(dir, entry.name);
           const relPath = relativePath ? join(relativePath, entry.name) : entry.name;
-          
+
           if (entry.isDirectory()) {
             await scanDirectory(fullPath, relPath);
           } else if (entry.isFile()) {
@@ -313,20 +338,20 @@ export class WorkspaceManager {
           }
         }
       }
-      
+
       await scanDirectory(workspacePath);
       return files.sort();
     } catch (error: any) {
       throw new WorkspaceError(`Failed to scan workspace: ${error.message}`, {
         workspacePath,
-        error: error.message
+        error: error.message,
       });
     }
   }
 
   async validateWorkspace(workspacePath: string): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
-    
+
     try {
       // Check if workspace exists
       const stats = await fs.stat(workspacePath);
@@ -334,35 +359,35 @@ export class WorkspaceManager {
         errors.push('Workspace path is not a directory');
         return { valid: false, errors };
       }
-      
+
       // Check if workspace is within base directory
       if (!this.isPathSafe(workspacePath)) {
         errors.push('Workspace path is outside allowed directory');
         return { valid: false, errors };
       }
-      
+
       // Get all files and validate
       const files = await this.getWorkspaceFiles(workspacePath);
-      
+
       if (files.length === 0) {
         errors.push('Workspace contains no files');
       }
-      
+
       if (files.length > this.maxFiles) {
         errors.push(`Too many files (${files.length} > ${this.maxFiles})`);
       }
-      
+
       let totalSize = 0;
       for (const file of files) {
         const filePath = join(workspacePath, file);
         try {
           const stats = await fs.stat(filePath);
           totalSize += stats.size;
-          
+
           if (stats.size > this.maxFileSize) {
             errors.push(`File too large: ${file} (${stats.size} > ${this.maxFileSize})`);
           }
-          
+
           if (!this.isExtensionAllowed(file)) {
             errors.push(`File extension not allowed: ${file}`);
           }
@@ -370,11 +395,11 @@ export class WorkspaceManager {
           errors.push(`Cannot access file: ${file} - ${error.message}`);
         }
       }
-      
+
       if (totalSize > this.maxTotalSize) {
         errors.push(`Total workspace too large (${totalSize} > ${this.maxTotalSize})`);
       }
-      
+
       return { valid: errors.length === 0, errors };
     } catch (error: any) {
       errors.push(`Workspace validation failed: ${error.message}`);
@@ -392,26 +417,26 @@ export class WorkspaceManager {
       logger.warn(`Failed to cleanup workspace: ${workspacePath} - ${error.message}`);
       throw new WorkspaceError(`Cleanup failed: ${error.message}`, {
         workspacePath,
-        error: error.message
+        error: error.message,
       });
     }
   }
 
   async cleanupExpiredWorkspaces(): Promise<number> {
     let cleanedCount = 0;
-    
+
     try {
       const entries = await fs.readdir(this.baseDir, { withFileTypes: true });
       const now = Date.now();
-      
+
       for (const entry of entries) {
         if (entry.isDirectory() && entry.name.startsWith('ws_')) {
           const workspacePath = join(this.baseDir, entry.name);
-          
+
           try {
             const stats = await fs.stat(workspacePath);
             const age = now - stats.ctimeMs;
-            
+
             // Clean up workspaces older than 2 hours
             if (age > 2 * 60 * 60 * 1000) {
               await this.cleanupWorkspace(workspacePath);
@@ -422,7 +447,7 @@ export class WorkspaceManager {
           }
         }
       }
-      
+
       logger.info(`Cleaned up ${cleanedCount} expired workspaces`);
       return cleanedCount;
     } catch (error: any) {

@@ -1,11 +1,10 @@
 import { spawn } from 'child_process';
-import { promisify } from 'util';
 import winston from 'winston';
 
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 export interface EnvironmentCapabilities {
@@ -39,12 +38,12 @@ export class EnvironmentDetector {
 
     // Check if we're in a Super-linter environment
     capabilities.isSuperlinterEnvironment = await this.checkSuperlinterEnvironment();
-    
+
     // Detect available linters
     capabilities.availableLinters = await this.detectAvailableLinters();
 
     this._capabilities = capabilities;
-    
+
     logger.info('Environment detection completed', {
       isSuperlinterEnvironment: capabilities.isSuperlinterEnvironment,
       availableLinters: capabilities.availableLinters,
@@ -66,13 +65,9 @@ export class EnvironmentDetector {
     // Check for Super-linter specific files/directories
     try {
       const fs = await import('fs').then(m => m.promises);
-      
+
       // Super-linter typically has these paths
-      const superlinterIndicators = [
-        '/action/lib/linter.sh',
-        '/github/workspace',
-        '/tmp/lint'
-      ];
+      const superlinterIndicators = ['/action/lib/linter.sh', '/github/workspace', '/tmp/lint'];
 
       for (const path of superlinterIndicators) {
         try {
@@ -84,13 +79,15 @@ export class EnvironmentDetector {
         }
       }
     } catch (error) {
-      logger.warn('Error checking Super-linter environment indicators', { error: (error as Error).message });
+      logger.warn('Error checking Super-linter environment indicators', {
+        error: (error as Error).message,
+      });
     }
 
     // Check for multiple linters that typically come with Super-linter
     const commonSuperlinterLinters = ['eslint', 'pylint', 'shellcheck', 'hadolint', 'yamllint'];
     const availableCount = await this.countAvailableLinters(commonSuperlinterLinters);
-    
+
     // If we have most of the common Super-linter tools, we're probably in that environment
     return availableCount >= 3;
   }
@@ -101,52 +98,71 @@ export class EnvironmentDetector {
   private static async detectAvailableLinters(): Promise<string[]> {
     const potentialLinters = [
       // JavaScript/TypeScript
-      'eslint', 'prettier', 'jshint', 'standard',
-      
+      'eslint',
+      'prettier',
+      'jshint',
+      'standard',
+
       // Python
-      'pylint', 'flake8', 'black', 'isort', 'bandit', 'mypy',
-      
+      'pylint',
+      'flake8',
+      'black',
+      'isort',
+      'bandit',
+      'mypy',
+
       // Shell
-      'shellcheck', 'shfmt',
-      
+      'shellcheck',
+      'shfmt',
+
       // Go
-      'golangci-lint', 'gofmt', 'goimports',
-      
+      'golangci-lint',
+      'gofmt',
+      'goimports',
+
       // Ruby
-      'rubocop', 'standardrb',
-      
+      'rubocop',
+      'standardrb',
+
       // Java
-      'checkstyle', 'pmd', 'spotbugs',
-      
+      'checkstyle',
+      'pmd',
+      'spotbugs',
+
       // C/C++
-      'cppcheck', 'clang-format',
-      
+      'cppcheck',
+      'clang-format',
+
       // Rust
-      'rustfmt', 'cargo', // for clippy
-      
+      'rustfmt',
+      'cargo', // for clippy
+
       // Kotlin
-      'ktlint', 'detekt',
-      
+      'ktlint',
+      'detekt',
+
       // Swift
       'swiftlint',
-      
+
       // Docker
       'hadolint',
-      
+
       // YAML/JSON
-      'yamllint', 'jsonlint',
-      
+      'yamllint',
+      'jsonlint',
+
       // Markdown
       'markdownlint',
-      
+
       // CSS
       'stylelint',
-      
+
       // HTML
       'htmlhint',
-      
+
       // PHP
-      'phpcs', 'phpstan',
+      'phpcs',
+      'phpstan',
     ];
 
     const availableLinters: string[] = [];
@@ -164,9 +180,9 @@ export class EnvironmentDetector {
    * Check if a specific linter is available
    */
   private static async isLinterAvailable(linter: string): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const process = spawn('which', [linter], { stdio: 'ignore' });
-      
+
       let resolved = false;
       const timeout = setTimeout(() => {
         if (!resolved) {
@@ -175,15 +191,15 @@ export class EnvironmentDetector {
           resolve(false);
         }
       }, 1000); // 1 second timeout
-      
-      process.on('close', (code) => {
+
+      process.on('close', code => {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);
           resolve(code === 0);
         }
       });
-      
+
       process.on('error', () => {
         if (!resolved) {
           resolved = true;
@@ -199,13 +215,13 @@ export class EnvironmentDetector {
    */
   private static async countAvailableLinters(linters: string[]): Promise<number> {
     let count = 0;
-    
+
     for (const linter of linters) {
       if (await this.isLinterAvailable(linter)) {
         count++;
       }
     }
-    
+
     return count;
   }
 
@@ -215,12 +231,12 @@ export class EnvironmentDetector {
   private static isContainerized(): boolean {
     try {
       const fs = require('fs');
-      
+
       // Check for Docker-specific files
       if (fs.existsSync('/.dockerenv')) {
         return true;
       }
-      
+
       // Check cgroup for container indicators
       try {
         const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
@@ -230,16 +246,15 @@ export class EnvironmentDetector {
       } catch {
         // /proc/1/cgroup might not exist or be readable
       }
-      
+
       // Check environment variables commonly set in containers
       if (process.env.DOCKER_CONTAINER || process.env.container) {
         return true;
       }
-      
     } catch (error) {
       logger.debug('Error checking containerized environment', { error: (error as Error).message });
     }
-    
+
     return false;
   }
 
@@ -248,20 +263,20 @@ export class EnvironmentDetector {
    */
   static async getEnvironmentSummary(): Promise<string> {
     const caps = await this.detectCapabilities();
-    
+
     let summary = `Environment: ${caps.isSuperlinterEnvironment ? 'Super-linter' : 'Standard'}`;
     summary += ` (${caps.containerized ? 'Containerized' : 'Host'})`;
     summary += `\nNode.js: ${caps.nodeVersion}`;
     summary += `\nPlatform: ${caps.platform}`;
     summary += `\nAvailable linters: ${caps.availableLinters.length}`;
-    
+
     if (caps.availableLinters.length > 0) {
       summary += `\n  - ${caps.availableLinters.slice(0, 10).join(', ')}`;
       if (caps.availableLinters.length > 10) {
         summary += ` (and ${caps.availableLinters.length - 10} more...)`;
       }
     }
-    
+
     return summary;
   }
 

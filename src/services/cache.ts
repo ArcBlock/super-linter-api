@@ -8,7 +8,7 @@ import winston from 'winston';
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 export interface CacheStats {
@@ -81,7 +81,12 @@ export class CacheService {
       .digest('hex');
   }
 
-  generateCacheKey(contentHash: string, linter: LinterType, format: OutputFormat, optionsHash: string): string {
+  generateCacheKey(
+    contentHash: string,
+    linter: LinterType,
+    format: OutputFormat,
+    optionsHash: string
+  ): string {
     return `${linter}:${format}:${contentHash}:${optionsHash}`;
   }
 
@@ -109,7 +114,7 @@ export class CacheService {
         }
       }
       const result = await this.db.getCachedResult(contentHash, linter, optionsHash);
-      
+
       if (result) {
         this.hitCount++;
         logger.debug('Cache hit', {
@@ -158,7 +163,7 @@ export class CacheService {
         result: typeof result === 'string' ? result : JSON.stringify(result),
         format,
         status,
-        error_message: errorMessage || undefined as any,
+        error_message: errorMessage || (undefined as any),
         created_at: new Date().toISOString(),
         expires_at: this.calculateExpiresAt(ttlHours),
       };
@@ -169,7 +174,7 @@ export class CacheService {
         id,
         ...cacheEntry,
       } as LintResult);
-      
+
       logger.debug('Cache set', {
         id,
         linter,
@@ -193,7 +198,7 @@ export class CacheService {
       throw new CacheError(`Failed to store cache entry: ${error.message}`, {
         linter,
         contentHash,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -230,7 +235,7 @@ export class CacheService {
   async cleanup(): Promise<number> {
     try {
       const deletedCount = await this.db.cleanupExpiredCache();
-      
+
       if (deletedCount > 0) {
         logger.info(`Cleaned up ${deletedCount} expired cache entries`);
       }
@@ -247,11 +252,13 @@ export class CacheService {
       // This is a simplified implementation
       // In a real scenario, you'd want to implement LRU or similar strategy
       const stats = await this.getStats();
-      
+
       if (stats.total_entries > this.maxEntries) {
         const excessEntries = stats.total_entries - this.maxEntries;
-        logger.warn(`Cache exceeds max entries (${stats.total_entries} > ${this.maxEntries}), should cleanup ${excessEntries} entries`);
-        
+        logger.warn(
+          `Cache exceeds max entries (${stats.total_entries} > ${this.maxEntries}), should cleanup ${excessEntries} entries`
+        );
+
         // For now, just cleanup expired entries
         await this.cleanup();
       }
@@ -263,18 +270,19 @@ export class CacheService {
   async getStats(): Promise<CacheStats> {
     try {
       const cacheStats = await this.db.getCacheStats();
-      
+
       // Aggregate stats from database results
       let totalEntries = 0;
       const sizeMb = 0;
-      
+
       for (const stat of cacheStats) {
         totalEntries += stat.total_cached || 0;
       }
 
-      const hitRate = this.hitCount + this.missCount > 0 
-        ? (this.hitCount / (this.hitCount + this.missCount)) * 100
-        : 0;
+      const hitRate =
+        this.hitCount + this.missCount > 0
+          ? (this.hitCount / (this.hitCount + this.missCount)) * 100
+          : 0;
 
       return {
         total_entries: totalEntries,
@@ -309,7 +317,7 @@ export class CacheService {
 
   private startCleanupTimer(intervalHours: number): void {
     const intervalMs = intervalHours * 60 * 60 * 1000;
-    
+
     this.cleanupTimer = setInterval(async () => {
       try {
         logger.debug('Running scheduled cache cleanup');
@@ -340,12 +348,12 @@ export class CacheService {
     }>
   ): Promise<void> {
     logger.info(`Warming cache with ${commonConfigs.length} configurations`);
-    
+
     for (const config of commonConfigs) {
       try {
         const contentHash = this.generateContentHash(config.content);
         const optionsHash = this.generateOptionsHash(config.options);
-        
+
         // Check if already cached
         const existing = await this.get(contentHash, config.linter, optionsHash);
         if (!existing) {
@@ -372,7 +380,7 @@ export class CacheService {
     total_requests: number;
   }> {
     const stats = await this.getStats();
-    
+
     return {
       hit_rate: this.getHitRate(),
       cache_size_mb: stats.size_mb,

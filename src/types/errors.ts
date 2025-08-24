@@ -1,4 +1,4 @@
-export type ErrorCode = 
+export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'INVALID_PARAMETERS'
   | 'INVALID_CONTENT_ENCODING'
@@ -43,7 +43,11 @@ export class LinterError extends Error implements ApiError {
   details?: any;
   requestId?: string;
 
-  constructor(code: Extract<ErrorCode, 'LINTER_NOT_FOUND' | 'LINTER_EXECUTION_FAILED'>, message: string, details?: any) {
+  constructor(
+    code: Extract<ErrorCode, 'LINTER_NOT_FOUND' | 'LINTER_EXECUTION_FAILED'>,
+    message: string,
+    details?: any
+  ) {
     super(message);
     this.name = 'LinterError';
     this.code = code;
@@ -181,7 +185,10 @@ export class ServiceUnavailableError extends Error implements ApiError {
   }
 }
 
-export function createErrorResponse(error: ApiError, requestId?: string): {
+export function createErrorResponse(
+  error: ApiError,
+  requestId?: string
+): {
   success: false;
   error: {
     code: string;

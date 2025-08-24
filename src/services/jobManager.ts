@@ -10,7 +10,7 @@ import winston from 'winston';
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 export interface JobResult {
@@ -73,7 +73,7 @@ export class JobManager extends EventEmitter {
     try {
       // Generate job ID
       const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Check concurrent job limit
       if (this.runningJobs.size >= this.maxConcurrentJobs) {
         throw new Error(`Maximum concurrent jobs limit reached (${this.maxConcurrentJobs})`);
@@ -110,7 +110,6 @@ export class JobManager extends EventEmitter {
       });
 
       return jobId;
-
     } catch (error: any) {
       logger.error('Failed to submit job', {
         error: error.message,
@@ -218,7 +217,7 @@ export class JobManager extends EventEmitter {
       const cachedResult = await this.cacheService.get(contentHash, request.linter, optionsHash);
 
       let result: any;
-      
+
       if (cachedResult) {
         logger.info('Cache hit for job', {
           jobId,
@@ -236,7 +235,10 @@ export class JobManager extends EventEmitter {
         let workspace;
         if (request.content) {
           const filename = request.filename || this.getDefaultFilename(request.linter);
-          workspace = await this.workspaceManager.createWorkspaceFromText(request.content, filename);
+          workspace = await this.workspaceManager.createWorkspaceFromText(
+            request.content,
+            filename
+          );
         } else if (request.archive) {
           workspace = await this.workspaceManager.createWorkspaceFromBase64(request.archive);
         } else {
@@ -266,7 +268,6 @@ export class JobManager extends EventEmitter {
             result,
             result.success ? 'success' : 'error'
           );
-
         } finally {
           // Cleanup workspace
           await this.workspaceManager.cleanupWorkspace(workspace.path).catch(err => {
@@ -288,8 +289,8 @@ export class JobManager extends EventEmitter {
 
       // Update job with result
       await this.db.updateJobStatus(
-        jobId, 
-        'completed', 
+        jobId,
+        'completed',
         JSON.stringify(result),
         undefined,
         executionTime
@@ -302,7 +303,6 @@ export class JobManager extends EventEmitter {
       });
 
       this.emit('jobCompleted', jobId, result);
-
     } catch (error: any) {
       const executionTime = Date.now() - startTime;
 
@@ -313,17 +313,10 @@ export class JobManager extends EventEmitter {
       });
 
       if (!abortController.signal.aborted) {
-        await this.db.updateJobStatus(
-          jobId,
-          'failed',
-          undefined,
-          error.message,
-          executionTime
-        );
+        await this.db.updateJobStatus(jobId, 'failed', undefined, error.message, executionTime);
 
         this.emit('jobFailed', jobId, error.message);
       }
-
     } finally {
       // Cleanup
       this.runningJobs.delete(jobId);
@@ -405,7 +398,7 @@ export class JobManager extends EventEmitter {
 
   private cleanup(): void {
     logger.info(`Cleaning up ${this.runningJobs.size} running jobs`);
-    
+
     // Cancel all running jobs
     for (const [jobId, abortController] of this.runningJobs.entries()) {
       try {
