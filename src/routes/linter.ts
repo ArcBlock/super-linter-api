@@ -171,7 +171,8 @@ export function createLinterRouter(
         });
         
         (req as any).cacheHit = true;
-        res.json(formatLinterResult(cachedResult, format));
+        const parsed = safeParseCachedResult(cachedResult);
+        res.json(formatLinterResult(parsed, format));
         return;
       }
 
@@ -307,7 +308,8 @@ export function createLinterRouter(
         // Cleanup workspace since we're using cache
         await workspaceManager.cleanupWorkspace(workspace.path).catch(() => {});
         
-        res.json(formatLinterResult(cachedResult, format));
+        const parsed = safeParseCachedResult(cachedResult);
+        res.json(formatLinterResult(parsed, format));
         return;
       }
 
@@ -874,6 +876,18 @@ function formatToSarif(result: any): any {
   }
 
   return sarif;
+}
+
+// Helper to safely parse cached DB result back to linter result shape
+function safeParseCachedResult(cached: any): any {
+  try {
+    if (cached && typeof cached.result === 'string') {
+      return JSON.parse(cached.result);
+    }
+  } catch {
+    // Fallback to minimal shape if parsing fails
+  }
+  return cached;
 }
 
 // Helper function to get default filename for linter type

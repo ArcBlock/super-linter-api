@@ -4,6 +4,26 @@ import { LintResult, LintJob, ApiMetric, JobStatus } from '../types/database';
 
 export class DatabaseService {
   private dbPath: string;
+  
+  private toSqlDateTime(dt: string): string {
+    try {
+      // Normalize to 'YYYY-MM-DD HH:MM:SS' for proper SQLite comparison
+      const d = new Date(dt);
+      if (!isNaN(d.getTime())) {
+        // Use UTC to match SQLite datetime('now') which is UTC by default
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const year = d.getUTCFullYear();
+        const month = pad(d.getUTCMonth() + 1);
+        const day = pad(d.getUTCDate());
+        const hours = pad(d.getUTCHours());
+        const minutes = pad(d.getUTCMinutes());
+        const seconds = pad(d.getUTCSeconds());
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      }
+    } catch {}
+    // Fallback: best-effort normalization
+    return dt.replace('T', ' ').replace('Z', '').replace(/\.\d+/, '');
+  }
 
   constructor(dbPath?: string) {
     this.dbPath = dbPath || join(__dirname, '..', '..', 'data', 'super-linter-api.db');
@@ -152,6 +172,19 @@ export class DatabaseService {
     }
   }
 
+  // Helper to perform a write (e.g., DELETE) and return number of changed rows
+  private deleteAndReturnChanges(deleteSql: string, params: any[] = []): number {
+    // Execute the DELETE followed by a SELECT of changes() within the same sqlite3 invocation
+    const combinedSql = `${deleteSql}; SELECT json_object('deleted', changes())`;
+    const result = this.query(combinedSql, params);
+    const first = result[0] as any;
+    if (first && typeof first === 'object' && 'deleted' in first) {
+      const n = parseInt((first as any).deleted as any, 10);
+      return Number.isNaN(n) ? 0 : n;
+    }
+    return 0;
+  }
+
   // Cache operations
   async getCachedResult(contentHash: string, linterType: string, optionsHash: string): Promise<LintResult | null> {
     const sql = `
@@ -175,8 +208,8 @@ export class DatabaseService {
     
     const results = this.query(sql, [contentHash, linterType, optionsHash]);
     if (results.length === 0) return null;
-    
-    return JSON.parse(results[0].json_result);
+    // query() already parses json_object rows to JS objects
+    return results[0];
   }
 
   async storeCachedResult(result: Omit<LintResult, 'id'>): Promise<string> {
@@ -189,6 +222,8 @@ export class DatabaseService {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
     
+    const expiresAt = this.toSqlDateTime(result.expires_at);
+
     this.query(sql, [
       id,
       result.content_hash,
@@ -198,7 +233,7 @@ export class DatabaseService {
       result.format,
       result.status,
       result.error_message,
-      result.expires_at
+      expiresAt
     ]);
     
     return id;
@@ -257,8 +292,7 @@ export class DatabaseService {
     
     const results = this.query(sql, [jobId]);
     if (results.length === 0) return null;
-    
-    return JSON.parse(results[0].json_result);
+    return results[0];
   }
 
   async updateJobStatus(jobId: string, status: JobStatus, result?: string, errorMessage?: string, executionTimeMs?: number): Promise<void> {
@@ -323,7 +357,7 @@ export class DatabaseService {
     `;
     
     const results = this.query(sql);
-    return results.map(row => JSON.parse(row.json_result));
+    return results as any;
   }
 
   // Metrics operations
@@ -373,22 +407,42 @@ export class DatabaseService {
 
   // Cleanup operations
   async cleanupExpiredCache(): Promise<number> {
-    this.exec(`DELETE FROM lint_results WHERE expires_at <= datetime('now');`);
-    
-    // Return count of deleted records
-    const queryResult = this.query(`SELECT changes() as deleted;`);
-    return queryResult[0]?.deleted || 0;
+    // Delete expired cache and return number of rows affected
+    return this.deleteAndReturnChanges(`DELETE FROM lint_results WHERE expires_at <= datetime('now')`);
   }
 
   async cleanupOldJobs(olderThanDays = 7): Promise<number> {
-    this.exec(`
+    return this.deleteAndReturnChanges(`
       DELETE FROM lint_jobs 
       WHERE status IN ('completed', 'failed', 'cancelled') 
-        AND created_at <= datetime('now', '-${olderThanDays} days');
+        AND created_at <= datetime('now', '-${olderThanDays} days')
     `);
-    
-    const queryResult = this.query(`SELECT changes() as deleted;`);
-    return queryResult[0]?.deleted || 0;
+  }
+
+  // Cache invalidation operations
+  async clearAllCache(): Promise<number> {
+    return this.deleteAndReturnChanges(`DELETE FROM lint_results`);
+  }
+
+  async clearCacheByContent(contentHash: string): Promise<number> {
+    return this.deleteAndReturnChanges(
+      `DELETE FROM lint_results WHERE content_hash = ?`,
+      [contentHash]
+    );
+  }
+
+  async clearCacheByLinter(linterType: string): Promise<number> {
+    return this.deleteAndReturnChanges(
+      `DELETE FROM lint_results WHERE linter_type = ?`,
+      [linterType]
+    );
+  }
+
+  async clearCacheByContentAndLinter(contentHash: string, linterType: string): Promise<number> {
+    return this.deleteAndReturnChanges(
+      `DELETE FROM lint_results WHERE content_hash = ? AND linter_type = ?`,
+      [contentHash, linterType]
+    );
   }
 
   // Health check

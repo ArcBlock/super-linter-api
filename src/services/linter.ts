@@ -115,7 +115,6 @@ export class LinterRunner {
         cwd: workspacePath,
         env: { ...process.env, ...env },
         stdio: 'pipe',
-        timeout: timeoutMs,
       });
 
       this.runningProcesses.set(processId, child);
@@ -134,7 +133,9 @@ export class LinterRunner {
       });
 
       // Handle timeout
+      let finished = false;
       const timer = setTimeout(() => {
+        if (finished) return;
         child.kill('SIGTERM');
         setTimeout(() => {
           if (!child.killed) {
@@ -149,6 +150,7 @@ export class LinterRunner {
       // Handle process completion
       child.on('close', (code, signal) => {
         clearTimeout(timer);
+        finished = true;
         this.runningProcesses.delete(processId);
         
         const executionTime = Date.now() - startTime;

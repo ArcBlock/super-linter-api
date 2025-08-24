@@ -226,7 +226,12 @@ export class JobManager extends EventEmitter {
           linter: request.linter,
           contentHash: contentHash.substring(0, 8),
         });
-        result = cachedResult;
+        // Parse cached DB result back to original linter result object
+        try {
+          result = JSON.parse(cachedResult.result as any);
+        } catch {
+          result = cachedResult;
+        }
       } else {
         // Create workspace
         let workspace;

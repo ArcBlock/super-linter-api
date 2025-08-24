@@ -180,25 +180,24 @@ export class CacheService {
 
   async invalidate(contentHash?: string, linter?: LinterType): Promise<number> {
     try {
-      const deletedCount = 0;
+      let deletedCount = 0;
 
       if (contentHash && linter) {
-        // Invalidate specific cache entries
-        // Note: This would require a custom delete method in DatabaseService
-        logger.info('Invalidating specific cache entries', { contentHash, linter });
-        // For now, we'll just log - implement specific deletion in DatabaseService if needed
+        // Invalidate entries for specific content+linter
+        logger.info('Invalidating cache entries for content+linter', { contentHash, linter });
+        deletedCount = await this.db.clearCacheByContentAndLinter(contentHash, linter);
       } else if (contentHash) {
         // Invalidate all entries for specific content
-        logger.info('Invalidating all cache entries for content', { contentHash });
-        // Implement content-specific deletion
+        logger.info('Invalidating cache entries for content', { contentHash });
+        deletedCount = await this.db.clearCacheByContent(contentHash);
       } else if (linter) {
         // Invalidate all entries for specific linter
-        logger.info('Invalidating all cache entries for linter', { linter });
-        // Implement linter-specific deletion
+        logger.info('Invalidating cache entries for linter', { linter });
+        deletedCount = await this.db.clearCacheByLinter(linter);
       } else {
         // Clear all cache
         logger.info('Clearing all cache entries');
-        // Implement full cache clear
+        deletedCount = await this.db.clearAllCache();
       }
 
       return deletedCount;
