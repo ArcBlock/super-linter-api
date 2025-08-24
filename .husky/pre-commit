@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commit hook for Super-linter API
+echo "🔍 Running pre-commit checks..."
+
+# Run linting
+echo "📋 Running ESLint..."
+pnpm lint || {
+    echo "❌ ESLint failed. Please fix the issues above."
+    exit 1
+}
+
+# Run type checking
+echo "🔍 Running TypeScript type check..."
+pnpm type-check || {
+    echo "❌ Type checking failed. Please fix the type errors above."
+    exit 1
+}
+
+# Run tests
+echo "🧪 Running tests..."
+pnpm test || {
+    echo "❌ Tests failed. Please fix the failing tests above."
+    exit 1
+}
+
+echo "✅ All pre-commit checks passed!"

@@ -1,0 +1,343 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  release:
+    types: [published]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.6.5'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Code Quality and Testing
+  test:
+    name: 🧪 Test & Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run ESLint
+        run: pnpm lint
+
+      - name: 🔍 Run TypeScript type check
+        run: pnpm type-check
+
+      - name: 🧪 Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: 💾 Cache test results
+        uses: actions/cache@v4
+        with:
+          path: |
+            coverage/
+            test-results.xml
+          key: test-results-${{ github.sha }}
+          restore-keys: |
+            test-results-
+
+  # Security Scanning
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: 🔒 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      - name: 🔒 Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=package.json
+
+      - name: 🔒 Run npm audit
+        run: |
+          npm audit --audit-level=high --production || exit 0
+
+  # Build Docker Images
+  build:
+    name: 🐳 Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [test]
+
+    strategy:
+      matrix:
+        image-type: [standard, superlinter]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+
+      - name: 🐳 Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.image-type == 'superlinter' && 'Dockerfile.superlinter' || 'Dockerfile' }}
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧪 Test Docker image
+        run: |
+          docker run --rm -d --name test-container -p 3000:3000 ${{ steps.meta.outputs.tags }}
+          sleep 30
+          curl -f http://localhost:3000/health || exit 1
+          docker stop test-container
+
+  # Integration Tests
+  integration:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name != 'pull_request'
+
+    strategy:
+      matrix:
+        image-type: [standard, superlinter]
+
+    services:
+      super-linter-api:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "curl -f http://localhost:3000/health || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 3
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run integration tests
+        run: pnpm test:integration
+        env:
+          API_BASE_URL: http://localhost:3000
+          TEST_IMAGE_TYPE: ${{ matrix.image-type }}
+
+  # Performance Tests
+  performance:
+    name: 🚀 Performance Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Run performance container
+        run: |
+          docker run -d --name perf-test -p 3000:3000 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          sleep 30
+
+      - name: 🚀 Run load tests
+        run: |
+          # Install k6 for load testing
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+          # Run basic load test
+          k6 run --vus 10 --duration 30s - <<EOF
+          import http from 'k6/http';
+          import { check } from 'k6';
+
+          export default function () {
+            let response = http.get('http://localhost:3000/health');
+            check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 500ms': (r) => r.timings.duration < 500,
+            });
+          }
+          EOF
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: docker stop perf-test || true
+
+  # Deployment (only on release)
+  deploy:
+    name: 🚀 Deploy Release
+    runs-on: ubuntu-latest
+    needs: [test, security, build, integration]
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    environment:
+      name: production
+      url: https://super-linter-api.example.com
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: 🚀 Deploy to ECS
+        run: |
+          # Update ECS service with new image
+          aws ecs update-service \
+            --cluster super-linter-api-cluster \
+            --service super-linter-api-service \
+            --force-new-deployment
+
+      - name: ⏰ Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster super-linter-api-cluster \
+            --services super-linter-api-service
+
+      - name: 🧪 Smoke test deployment
+        run: |
+          sleep 60
+          curl -f https://super-linter-api.example.com/health || exit 1
+
+  # Notification
+  notify:
+    name: 📢 Notify Status
+    runs-on: ubuntu-latest
+    needs: [test, security, build, integration]
+    if: always()
+
+    steps:
+      - name: 📢 Notify on success
+        if: ${{ needs.test.result == 'success' && needs.build.result == 'success' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#super-linter-api'
+          text: |
+            ✅ CI/CD Pipeline succeeded for ${{ github.repository }}
+
+            📊 **Results:**
+            • Tests: ${{ needs.test.result }}
+            • Security: ${{ needs.security.result }}
+            • Build: ${{ needs.build.result }}
+            • Integration: ${{ needs.integration.result }}
+
+            🔗 **Links:**
+            • [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            • [Commit](${{ github.event.head_commit.url }})
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📢 Notify on failure
+        if: ${{ needs.test.result == 'failure' || needs.build.result == 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#super-linter-api'
+          text: |
+            ❌ CI/CD Pipeline failed for ${{ github.repository }}
+
+            📊 **Results:**
+            • Tests: ${{ needs.test.result }}
+            • Security: ${{ needs.security.result }}
+            • Build: ${{ needs.build.result }}
+            • Integration: ${{ needs.integration.result }}
+
+            🔗 **Links:**
+            • [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            • [Commit](${{ github.event.head_commit.url }})
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

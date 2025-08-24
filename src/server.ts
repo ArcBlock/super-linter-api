@@ -36,7 +36,7 @@ const logger = winston.createLogger({
 async function initializeServices() {
   // Detect environment capabilities
   const capabilities = await EnvironmentDetector.detectCapabilities();
-  
+
   logger.info('Environment detected', {
     superlinterEnvironment: capabilities.isSuperlinterEnvironment,
     containerized: capabilities.containerized,
@@ -46,12 +46,12 @@ async function initializeServices() {
 
   const db = new DatabaseService();
   const workspaceManager = new WorkspaceManager();
-  
+
   // Choose the appropriate linter runner based on environment
   const linterRunner = capabilities.isSuperlinterEnvironment
     ? new SuperLinterRunner(workspaceManager)
     : new LinterRunner(workspaceManager);
-  
+
   logger.info(`Using ${capabilities.isSuperlinterEnvironment ? 'SuperLinterRunner' : 'LinterRunner'}`, {
     reason: capabilities.isSuperlinterEnvironment ? 'Super-linter environment detected' : 'Standard environment - ESLint only'
   });
@@ -85,7 +85,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: NODE_ENV === 'production' 
+  origin: NODE_ENV === 'production'
     ? process.env.ALLOWED_ORIGINS?.split(',') || false
     : true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -101,7 +101,7 @@ app.use(compression({
 }));
 
 // Body parsing
-app.use(express.json({ 
+app.use(express.json({
   limit: '50mb',
   verify: (req, res, buf) => {
     // Store raw body for signature verification if needed
@@ -131,7 +131,7 @@ app.use(limiter);
 
 // Request ID middleware
 app.use((req, res, next) => {
-  const requestId = req.headers['x-request-id'] as string || 
+  const requestId = req.headers['x-request-id'] as string ||
     `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   (req as any).requestId = requestId;
   res.setHeader('X-Request-ID', requestId);
@@ -142,7 +142,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   const requestId = (req as any).requestId;
-  
+
   logger.info('Request started', {
     requestId,
     method: req.method,
@@ -190,7 +190,7 @@ async function startServer() {
   // Initialize services based on environment
   const services = await initializeServices();
   const { db, workspaceManager, linterRunner, cacheService, jobManager } = services;
-  
+
   // Store services globally for middleware access
   globalServices = services;
 
@@ -199,7 +199,7 @@ app.get('/health', async (req, res) => {
   try {
     const dbHealth = await db.healthCheck();
     const capabilities = await EnvironmentDetector.detectCapabilities();
-    
+
     const health = {
       status: dbHealth.status === 'healthy' ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
@@ -224,7 +224,7 @@ app.get('/health', async (req, res) => {
 
     const statusCode = health.status === 'healthy' ? 200 : 503;
     res.status(statusCode).json(health);
-    
+
   } catch (error: any) {
     logger.error('Health check failed', { error: error.message });
     res.status(503).json({
@@ -238,7 +238,7 @@ app.get('/health', async (req, res) => {
 // Basic info endpoint
 app.get('/', async (req, res) => {
   const capabilities = await EnvironmentDetector.detectCapabilities();
-  
+
   res.json({
     name: 'Super Linter API',
     version: process.env.npm_package_version || '1.0.0',
@@ -257,7 +257,7 @@ app.get('/', async (req, res) => {
       lint_async: '/{linter}/{format}/async',
       job_status: '/jobs/{id}',
     },
-    documentation: 'https://github.com/your-org/super-linter-api',
+    documentation: 'https://github.com/arcblock/super-linter-api',
   });
 });
 
@@ -267,7 +267,7 @@ app.use(createLinterRouter(workspaceManager, linterRunner, cacheService, db, job
 // Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   const requestId = (req as any).requestId;
-  
+
   logger.error('Unhandled error', {
     requestId,
     error: error.message,
@@ -292,7 +292,7 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 // 404 handler
 app.use((req, res) => {
   const requestId = (req as any).requestId;
-  
+
   const errorResponse = createErrorResponse({
     code: 'NOT_FOUND',
     message: `Endpoint not found: ${req.method} ${req.path}`,

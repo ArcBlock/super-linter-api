@@ -1,0 +1,301 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.3)'
+        required: true
+        type: string
+      pre_release:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.6.5'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate-release:
+    name: 🔍 Validate Release
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.pre_release }}"
+          else
+            # Extract version from tag
+            VERSION=${GITHUB_REF#refs/tags/v}
+            # Check if it's a pre-release (contains alpha, beta, rc)
+            if [[ $VERSION =~ (alpha|beta|rc) ]]; then
+              IS_PRERELEASE=true
+            else
+              IS_PRERELEASE=false
+            fi
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+
+          echo "🏷️ Release Version: $VERSION"
+          echo "🧪 Pre-release: $IS_PRERELEASE"
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Validate package.json version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [[ "$PACKAGE_VERSION" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "❌ Version mismatch: package.json=$PACKAGE_VERSION, release=${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+          echo "✅ Version validation passed"
+
+      - name: 🧪 Run full test suite
+        run: |
+          pnpm lint
+          pnpm type-check
+          pnpm test
+
+  build-release-images:
+    name: 🐳 Build Release Images
+    runs-on: ubuntu-latest
+    needs: validate-release
+
+    strategy:
+      matrix:
+        image-type: [standard, superlinter]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+          tags: |
+            type=semver,pattern={{version}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+            type=semver,pattern={{major}}.{{minor}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+            type=semver,pattern={{major}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+            type=raw,value=latest,enable={{is_default_branch}},suffix=${{ matrix.image-type == 'superlinter' && '-superlinter' || '' }}
+
+      - name: 🐳 Build and push release image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.image-type == 'superlinter' && 'Dockerfile.superlinter' || 'Dockerfile' }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.title=Super-linter API${{ matrix.image-type == 'superlinter' && ' (Super-linter)' || '' }}
+            org.opencontainers.image.description=HTTP API layer for Super-linter providing Kroki-style REST endpoints
+            org.opencontainers.image.version=${{ needs.validate-release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.validate-release.outputs.version }}
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+      - name: 🔒 Sign container image
+        if: matrix.image-type == 'standard'  # Only sign one image to avoid duplication
+        uses: sigstore/cosign-installer@v3
+
+      - name: 🔒 Sign the published Docker image
+        if: matrix.image-type == 'standard'
+        run: |
+          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+  create-release:
+    name: 🚀 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-release-images]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changelog generation
+
+      - name: 📝 Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+
+          # Get previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          # Generate changelog
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            echo "## Changes since $PREVIOUS_TAG" > release-notes.md
+            echo "" >> release-notes.md
+
+            # Group commits by type
+            echo "### 🚀 Features" >> release-notes.md
+            git log $PREVIOUS_TAG..HEAD --oneline --grep="^feat" --grep="^add" | sed 's/^/- /' >> release-notes.md || true
+            echo "" >> release-notes.md
+
+            echo "### 🐛 Bug Fixes" >> release-notes.md
+            git log $PREVIOUS_TAG..HEAD --oneline --grep="^fix" --grep="^bug" | sed 's/^/- /' >> release-notes.md || true
+            echo "" >> release-notes.md
+
+            echo "### 📦 Dependencies" >> release-notes.md
+            git log $PREVIOUS_TAG..HEAD --oneline --grep="^deps" --grep="^build" | sed 's/^/- /' >> release-notes.md || true
+            echo "" >> release-notes.md
+
+            echo "### 📚 Documentation" >> release-notes.md
+            git log $PREVIOUS_TAG..HEAD --oneline --grep="^docs" | sed 's/^/- /' >> release-notes.md || true
+            echo "" >> release-notes.md
+
+            echo "### 🔧 Other Changes" >> release-notes.md
+            git log $PREVIOUS_TAG..HEAD --oneline --invert-grep --grep="^feat" --grep="^add" --grep="^fix" --grep="^bug" --grep="^deps" --grep="^build" --grep="^docs" | sed 's/^/- /' >> release-notes.md || true
+          else
+            echo "## Initial Release" > release-notes.md
+            echo "" >> release-notes.md
+            echo "This is the first release of Super-linter API." >> release-notes.md
+          fi
+
+          echo "" >> release-notes.md
+          echo "## 📦 Container Images" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "### Standard Image (ESLint only)" >> release-notes.md
+          echo "\`\`\`bash" >> release-notes.md
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION" >> release-notes.md
+          echo "\`\`\`" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "### Super-linter Image (All linters)" >> release-notes.md
+          echo "\`\`\`bash" >> release-notes.md
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION-superlinter" >> release-notes.md
+          echo "\`\`\`" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "## 🔗 Links" >> release-notes.md
+          echo "- [Documentation](https://github.com/${{ github.repository }}/blob/v$VERSION/README.md)" >> release-notes.md
+          echo "- [Docker Hub](https://github.com/${{ github.repository }}/pkgs/container/${{ github.repository }})" >> release-notes.md
+          echo "- [Full Changelog](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...v$VERSION)" >> release-notes.md
+
+          # Store release notes for use in GitHub release
+          echo "RELEASE_NOTES_FILE=release-notes.md" >> $GITHUB_ENV
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate-release.outputs.version }}
+          name: Release v${{ needs.validate-release.outputs.version }}
+          body_path: release-notes.md
+          prerelease: ${{ needs.validate-release.outputs.is_prerelease }}
+          draft: false
+          generate_release_notes: false
+          files: |
+            LICENSE
+            CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-release:
+    name: 📢 Notify Release
+    runs-on: ubuntu-latest
+    needs: [validate-release, create-release, deploy-release]
+    if: always()
+
+    steps:
+      - name: 📢 Notify success
+        if: ${{ needs.create-release.result == 'success' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#releases'
+          text: |
+            🎉 **New Release Published!** 🎉
+
+            **Version:** v${{ needs.validate-release.outputs.version }}
+            **Type:** ${{ needs.validate-release.outputs.is_prerelease == 'true' && 'Pre-release' || 'Stable Release' }}
+
+            **Container Images:**
+            • Standard: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}`
+            • Super-linter: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}-superlinter`
+
+            **Status:**
+            • Build: ${{ needs.build-release-images.result }}
+            • Release: ${{ needs.create-release.result }}
+            • Deploy: ${{ needs.deploy-release.result }}
+
+            🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate-release.outputs.version }})
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📢 Notify failure
+        if: ${{ needs.create-release.result == 'failure' || needs.build-release-images.result == 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#releases'
+          text: |
+            ❌ **Release Failed** ❌
+
+            **Version:** v${{ needs.validate-release.outputs.version }}
+
+            **Status:**
+            • Validation: ${{ needs.validate-release.result }}
+            • Build: ${{ needs.build-release-images.result }}
+            • Release: ${{ needs.create-release.result }}
+            • Deploy: ${{ needs.deploy-release.result }}
+
+            **Action needed:** Please check the workflow logs and retry the release.
+
+            🔗 [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
