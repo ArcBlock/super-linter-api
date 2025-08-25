@@ -129,11 +129,34 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// Request ID middleware
+// Request ID middleware - check common proxy headers first
 app.use((req, res, next) => {
-  const requestId = req.headers['x-request-id'] as string ||
-    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Check for existing request ID from various proxy headers
+  // Express.js automatically normalizes headers to lowercase
+  const existingRequestId = 
+    req.headers['x-request-id'] ||
+    req.headers['request-id'] ||
+    req.headers['x-correlation-id'] ||
+    req.headers['x-trace-id'] ||
+    req.headers['traceparent']; // W3C trace context
+
+  // Validate existing request ID (must be non-empty string, reasonable length)
+  const isValidRequestId = (id: any): id is string => {
+    return typeof id === 'string' && 
+           id.trim().length > 0 && 
+           id.length <= 256 && // Reasonable max length
+           !/[\r\n\t\0]/.test(id) && // No control characters
+           id === id.trim(); // No leading/trailing whitespace
+  };
+
+  // Only generate new requestId if none found or invalid in headers
+  const requestId = isValidRequestId(existingRequestId) 
+    ? existingRequestId
+    : `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
   (req as any).requestId = requestId;
+  
+  // Always set the response header for downstream services
   res.setHeader('X-Request-ID', requestId);
   next();
 });
