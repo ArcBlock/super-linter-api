@@ -1,0 +1,135 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for Super-linter API
+title: "[FEATURE] "
+labels: ["feature", "enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! We appreciate your input in making Super-linter API better.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checklist
+      description: Please ensure these steps have been taken before submitting a feature request
+      options:
+        - label: I have searched existing issues to make sure this feature has not already been requested
+          required: true
+        - label: I have checked the documentation to ensure this feature doesn't already exist
+          required: true
+        - label: I believe this feature would benefit the broader Super-linter API community
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What use case does it address?
+      placeholder: |
+        I'm always frustrated when...
+        Currently, there's no way to...
+        It would be helpful if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you'd like to see implemented
+      placeholder: |
+        I would like to see...
+        The API should be able to...
+        This could work by...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which category best describes this feature?
+      options:
+        - API Enhancement
+        - New Linter Support
+        - Performance Improvement
+        - Security Feature
+        - Documentation
+        - Developer Experience
+        - Infrastructure/DevOps
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Needed for production use
+        - Critical - Blocking current work
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternative solutions or features have you considered?
+      placeholder: |
+        I considered...
+        Another approach could be...
+        Currently I'm working around this by...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Provide examples of how this feature would be used
+      placeholder: |
+        ```bash
+        # Example API call
+        curl -X POST http://localhost:3000/new-endpoint \
+          -H "Content-Type: application/json" \
+          -d '{"example": "data"}'
+        ```
+        
+        ```json
+        // Expected response
+        {
+          "success": true,
+          "result": "..."
+        }
+        ```
+      render: markdown
+
+  - type: textarea
+    id: implementation_notes
+    attributes:
+      label: Implementation Notes
+      description: Any technical details, constraints, or implementation ideas
+      placeholder: |
+        This could be implemented by...
+        It should integrate with...
+        Consider backwards compatibility...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in contributing to this feature?
+      options:
+        - label: I would be willing to implement this feature
+        - label: I would be willing to help test this feature
+        - label: I would be willing to help document this feature
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples
+      placeholder: Add any other context or screenshots about the feature request here...
