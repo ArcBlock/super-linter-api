@@ -274,7 +274,7 @@ build_images() {
     fi
 
     # Build images with version tag
-    "$SCRIPT_DIR/build.sh" -v "$version" -t all
+    "$SCRIPT_DIR/build.sh" -v "$version"
 
     log_success "Docker images built successfully"
 }
