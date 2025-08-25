@@ -1,6 +1,6 @@
 {
   "name": "super-linter-api",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "HTTP API layer for Super-linter providing Kroki-style REST endpoints for code linting",
   "main": "dist/server.js",
   "scripts": {
