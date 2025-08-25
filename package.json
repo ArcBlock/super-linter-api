@@ -18,7 +18,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:reset": "rm -f data/*.db && pnpm db:migrate",
     "docker:build": "./scripts/build.sh",
-    "docker:run": "docker run --rm -p 3000:3000 super-linter-api:latest",
+    "docker:run": "docker run --rm -p 3000:3000 arcblock/super-linter-api:latest",
     "setup": "./scripts/dev.sh setup",
     "clean": "./scripts/dev.sh clean",
     "clean:all": "./scripts/dev.sh clean all",

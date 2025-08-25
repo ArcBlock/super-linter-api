@@ -390,14 +390,20 @@ push_release() {
 
     # Push Docker images if they were built
     if [[ "$SKIP_BUILD" == "false" ]]; then
-        log_info "Pushing Docker images..."
-        docker push "super-linter-api:$version" || true
-        docker push "super-linter-api:superlinter-$version" || true
+        log_info "Pushing Docker images to registries..."
+        
+        # Push to GitHub Container Registry
+        docker tag "arcblock/super-linter-api:$version" "ghcr.io/arcblock/super-linter-api:$version" || true
+        docker push "ghcr.io/arcblock/super-linter-api:$version" || true
+        
+        # Push to Docker Hub
+        docker push "arcblock/super-linter-api:$version" || true
 
         # Also push latest tags for releases (not pre-releases)
         if [[ "$PRE_RELEASE" == "false" ]]; then
-            docker push "super-linter-api:latest" || true
-            docker push "super-linter-api:superlinter" || true
+            docker tag "arcblock/super-linter-api:latest" "ghcr.io/arcblock/super-linter-api:latest" || true
+            docker push "ghcr.io/arcblock/super-linter-api:latest" || true
+            docker push "arcblock/super-linter-api:latest" || true
         fi
     fi
 

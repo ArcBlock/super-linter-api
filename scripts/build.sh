@@ -171,8 +171,8 @@ build_superlinter_image() {
     log_info "Building Super-linter Docker image..."
     log_warn "This may take 10-15 minutes and requires ~6GB disk space"
     
-    local image_name="super-linter-api:$VERSION"
-    local latest_tag="super-linter-api:latest"
+    local image_name="arcblock/super-linter-api:$VERSION"
+    local latest_tag="arcblock/super-linter-api:latest"
     
     cd "$PROJECT_ROOT"
     
@@ -194,10 +194,21 @@ build_superlinter_image() {
     log_info "Image size: $size"
     
     if [[ "$PUSH" == "true" ]]; then
-        log_info "Pushing Super-linter image..."
+        log_info "Pushing Super-linter images to registries..."
+        
+        # Push to Docker Hub
         docker push "$image_name"
         docker push "$latest_tag"
-        log_success "Pushed Super-linter image"
+        
+        # Also push to GitHub Container Registry
+        local ghcr_image="ghcr.io/$image_name"
+        local ghcr_latest="ghcr.io/$latest_tag"
+        docker tag "$image_name" "$ghcr_image" || true
+        docker tag "$latest_tag" "$ghcr_latest" || true
+        docker push "$ghcr_image" || true
+        docker push "$ghcr_latest" || true
+        
+        log_success "Pushed Super-linter images to both registries"
     fi
 }
 
@@ -221,7 +232,7 @@ show_summary() {
     echo "============================================"
     
     log_info "Available images:"
-    docker images | grep "super-linter-api" | head -10
+    docker images | grep "arcblock/super-linter-api" | head -10
     
     log_success "Build completed successfully!"
 }

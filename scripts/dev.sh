@@ -301,15 +301,15 @@ docker_commands() {
             log_info "Running Docker container: $type on port $port"
             
             if [[ "$type" == "superlinter" ]]; then
-                docker run --rm -p "$port:3000" super-linter-api:superlinter
+                docker run --rm -p "$port:3000" arcblock/super-linter-api:superlinter
             else
-                docker run --rm -p "$port:3000" super-linter-api:latest
+                docker run --rm -p "$port:3000" arcblock/super-linter-api:latest
             fi
             ;;
         clean)
             log_info "Cleaning Docker images..."
             docker system prune -f
-            docker images | grep "super-linter-api" | awk '{print $3}' | xargs docker rmi || true
+            docker images | grep "arcblock/super-linter-api" | awk '{print $3}' | xargs docker rmi || true
             ;;
         logs)
             local container_name="${1:-super-linter-api}"

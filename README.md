@@ -57,12 +57,24 @@ This API implements **18 commonly used linters** from Super-linter's 50+ availab
 
 ### Using Docker (Recommended)
 
+#### Pre-built Images (Multi-Registry)
+```bash
+# From Docker Hub
+docker pull arcblock/super-linter-api:latest
+docker run -p 3000:3000 arcblock/super-linter-api:latest
+
+# From GitHub Container Registry
+docker pull ghcr.io/arcblock/super-linter-api:latest
+docker run -p 3000:3000 ghcr.io/arcblock/super-linter-api:latest
+```
+
+#### Build Locally
 ```bash
 # Build the Super-linter enabled image
-docker build -t super-linter-api .
+docker build -t arcblock/super-linter-api .
 
 # Run with full linter support
-docker run -p 3000:3000 super-linter-api
+docker run -p 3000:3000 arcblock/super-linter-api
 ```
 
 ### Local Development
@@ -100,7 +112,7 @@ pnpm start
 
 ```bash
 # Build the Super-linter API image (includes 50+ linters, exposes 18 commonly used ones)
-docker build -t super-linter-api .
+docker build -t arcblock/super-linter-api .
 ```
 
 ## 🔧 API Usage
@@ -314,10 +326,10 @@ pnpm test src/services/linter.test.ts
 
 ```bash
 # Build (requires ~6GB disk space)
-docker build -t super-linter-api .
+docker build -t arcblock/super-linter-api .
 
 # Run with 18 exposed linters (50+ available in base image)
-docker run -p 3000:3000 super-linter-api
+docker run -p 3000:3000 arcblock/super-linter-api
 ```
 
 ### Docker Compose
@@ -326,9 +338,11 @@ docker run -p 3000:3000 super-linter-api
 version: '3.8'
 services:
   super-linter-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: arcblock/super-linter-api:latest
+    # Alternative: build locally
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     ports:
       - '3000:3000'
     environment:
