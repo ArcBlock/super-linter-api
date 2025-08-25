@@ -422,7 +422,7 @@ create_github_release() {
     # Check if gh CLI is available
     if ! command -v gh &> /dev/null; then
         log_warn "GitHub CLI (gh) not found, skipping GitHub release creation"
-        log_info "Create release manually at: https://github.com/arcblock/super-linter-api/releases"
+        log_info "Create release manually at: https://github.com/${{ github.repository }}/releases"
         return
     fi
 
@@ -433,7 +433,7 @@ create_github_release() {
     else
         release_notes="Release version $version
 
-See the [full changelog](https://github.com/arcblock/super-linter-api/compare/v$(get_current_version)...$tag_name) for details."
+See the [full changelog](https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^/]*\/[^.]*\).*/\1/')/compare/v$(get_current_version)...$tag_name) for details."
     fi
 
     local gh_flags=""

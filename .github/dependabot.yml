@@ -9,9 +9,9 @@ updates:
       time: "06:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     assignees:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -54,9 +54,9 @@ updates:
       time: "06:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     assignees:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     commit-message:
       prefix: "docker"
       include: "scope"
@@ -70,9 +70,9 @@ updates:
       time: "06:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     assignees:
-      - "@super-linter-api-maintainers"
+      - "wangshijun"
     commit-message:
       prefix: "ci"
       include: "scope"

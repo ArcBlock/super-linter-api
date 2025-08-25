@@ -235,7 +235,7 @@ jobs:
   notify-release:
     name: 📢 Notify Release
     runs-on: ubuntu-latest
-    needs: [validate-release, create-release, deploy-release]
+    needs: [validate-release, create-release, build-release-images]
     if: always()
 
     steps:
@@ -257,7 +257,6 @@ jobs:
             **Status:**
             • Build: ${{ needs.build-release-images.result }}
             • Release: ${{ needs.create-release.result }}
-            • Deploy: ${{ needs.deploy-release.result }}
 
             🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate-release.outputs.version }})
         env:
@@ -278,7 +277,6 @@ jobs:
             • Validation: ${{ needs.validate-release.result }}
             • Build: ${{ needs.build-release-images.result }}
             • Release: ${{ needs.create-release.result }}
-            • Deploy: ${{ needs.deploy-release.result }}
 
             **Action needed:** Please check the workflow logs and retry the release.
 
