@@ -20,7 +20,7 @@ env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10.6.5'
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: arcblock/super-linter-api
 
 jobs:
   validate-release:

@@ -273,8 +273,8 @@ build_images() {
         return
     fi
 
-    # Build images with version tag
-    "$SCRIPT_DIR/build.sh" -v "$version"
+    # Build images with version tag (skip tests since we already ran them)
+    "$SCRIPT_DIR/build.sh" -v "$version" --skip-tests
 
     log_success "Docker images built successfully"
 }

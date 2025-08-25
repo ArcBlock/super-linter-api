@@ -41,12 +41,14 @@ OPTIONS:
     -v, --version VER   Version tag (default: auto-generated timestamp)
     --push              Push image to registry after build
     --no-cache          Build without using Docker cache
+    --skip-tests        Skip running tests before build
     -h, --help          Show this help message
 
 EXAMPLES:
     $0                      # Build Super-linter image
     $0 --push              # Build and push Super-linter image
     $0 --no-cache -v latest # Build without cache, tag as latest
+    $0 --skip-tests         # Build without running tests
 
 EOF
 }
@@ -54,6 +56,7 @@ EOF
 parse_args() {
     PUSH=false
     NO_CACHE=""
+    SKIP_TESTS=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -67,6 +70,10 @@ parse_args() {
                 ;;
             --no-cache)
                 NO_CACHE="--no-cache"
+                shift
+                ;;
+            --skip-tests)
+                SKIP_TESTS=true
                 shift
                 ;;
             -h|--help)
@@ -121,6 +128,11 @@ check_prerequisites() {
 }
 
 run_tests() {
+    if [[ "$SKIP_TESTS" == "true" ]]; then
+        log_warn "Skipping tests (--skip-tests specified)"
+        return
+    fi
+    
     log_info "Running tests before build..."
     
     cd "$PROJECT_ROOT"
