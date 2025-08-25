@@ -6,7 +6,7 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-readonly VERSION="${VERSION:-$(date +%Y%m%d-%H%M%S)}"
+VERSION="${VERSION:-$(date +%Y%m%d-%H%M%S)}"
 
 # Colors for output
 readonly RED='\033[0;31m'
