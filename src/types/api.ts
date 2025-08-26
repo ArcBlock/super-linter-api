@@ -1,6 +1,8 @@
 export type LinterType =
   | 'eslint'
   | 'oxlint'
+  | 'biome'
+  | 'biome-lint'
   | 'prettier'
   | 'jshint'
   | 'pylint'

@@ -23,6 +23,9 @@ const inflateAsync = promisify(inflateRaw);
 const LinterParamSchema = z.enum([
   'eslint',
   'oxlint',
+  'biome',
+  'biome-lint',
+  'prettier',
   'pylint',
   'rubocop',
   'shellcheck',

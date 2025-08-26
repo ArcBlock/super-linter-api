@@ -189,6 +189,8 @@ export function validateLinterSupportsFormat(linter: LinterType, format: OutputF
   const formatSupport: Record<LinterType, OutputFormat[]> = {
     eslint: ['json', 'text'],
     oxlint: ['json', 'text'],
+    biome: ['json', 'text'],
+    'biome-lint': ['json', 'text'],
     prettier: ['text'],
     jshint: ['json', 'text'],
     pylint: ['json', 'text'],

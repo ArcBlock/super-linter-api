@@ -30,6 +30,18 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
+  biome: {
+    executable: 'biome',
+    args: ['format', '--reporter=json'],
+    outputFormat: 'json',
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+  },
+  'biome-lint': {
+    executable: 'biome',
+    args: ['lint', '--reporter=json'],
+    outputFormat: 'json',
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+  },
   prettier: {
     executable: 'prettier',
     args: ['--check', '--list-different'],
@@ -463,6 +475,62 @@ module.exports = {
                 rule: diagnostic.code || 'unknown',
                 severity: diagnostic.severity === 'error' ? 'error' : 'warning',
                 message: diagnostic.message || 'Issue detected',
+                source: linter,
+              });
+            });
+          }
+          break;
+
+        case 'biome':
+          // Biome format uses a different JSON structure
+          if (output && output.diagnostics && Array.isArray(output.diagnostics)) {
+            output.diagnostics.forEach((diagnostic: any) => {
+              const location = diagnostic.location;
+              const span = location?.span;
+              // For format errors, the severity is always 'error' but treat as warning for formatting issues
+              issues.push({
+                file: location?.path?.file || 'unknown',
+                line: 1, // Format issues typically apply to whole file
+                column: 1,
+                rule: diagnostic.category || 'format',
+                severity: diagnostic.category === 'format' ? 'warning' : (diagnostic.severity === 'error' ? 'error' : 'warning'),
+                message: diagnostic.description || 'Formatting issue detected',
+                source: linter,
+              });
+            });
+          }
+          break;
+
+        case 'biome-lint':
+          // Biome lint uses similar structure but with proper span info
+          if (output && output.diagnostics && Array.isArray(output.diagnostics)) {
+            output.diagnostics.forEach((diagnostic: any) => {
+              const location = diagnostic.location;
+              const span = location?.span;
+              // Parse Biome's span format [start_offset, end_offset]
+              let line = 1;
+              let column = 1;
+              
+              if (span && Array.isArray(span) && span.length >= 1) {
+                // Calculate line/column from source and offset
+                const sourceCode = location?.sourceCode || '';
+                const offset = span[0];
+                
+                if (sourceCode && typeof offset === 'number') {
+                  const beforeOffset = sourceCode.slice(0, offset);
+                  line = (beforeOffset.match(/\n/g) || []).length + 1;
+                  const lastNewline = beforeOffset.lastIndexOf('\n');
+                  column = offset - lastNewline;
+                }
+              }
+              
+              issues.push({
+                file: location?.path?.file || 'unknown',
+                line: line,
+                column: column,
+                rule: diagnostic.category || 'unknown',
+                severity: diagnostic.severity === 'error' ? 'error' : 'warning',
+                message: diagnostic.description || 'Issue detected',
                 source: linter,
               });
             });
