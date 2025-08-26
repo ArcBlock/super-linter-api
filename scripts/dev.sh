@@ -44,7 +44,7 @@ COMMANDS:
     clean               Clean temporary files and caches
     docker              Docker development commands
     db                  Database management commands
-    logs                Show application logs
+    logs                Show Docker container logs
     health              Check application health
     help                Show this help message
 
@@ -98,7 +98,7 @@ setup_project() {
     pnpm install
     
     # Create necessary directories
-    local dirs=("data" "tmp" "logs")
+    local dirs=("data")
     for dir in "${dirs[@]}"; do
         if [[ ! -d "$dir" ]]; then
             mkdir -p "$dir"
@@ -364,16 +364,12 @@ clean_project() {
     case $target in
         all)
             log_info "Cleaning all temporary files..."
-            rm -rf tmp/* logs/* .tmp dist/* coverage/
+            rm -rf .tmp dist/* coverage/
             rm -f data/*.db-*  # SQLite temp files
             ;;
         temp)
             log_info "Cleaning temporary files..."
-            rm -rf tmp/* .tmp
-            ;;
-        logs)
-            log_info "Cleaning log files..."
-            rm -rf logs/*
+            rm -rf .tmp
             ;;
         cache)
             log_info "Cleaning caches..."
@@ -384,7 +380,7 @@ clean_project() {
             rm -rf dist/*
             ;;
         *)
-            echo "Clean targets: all, temp, logs, cache, dist"
+            echo "Clean targets: all, temp, cache, dist"
             ;;
     esac
     
@@ -392,37 +388,35 @@ clean_project() {
 }
 
 show_logs() {
-    local log_type="${1:-app}"
+    local mode="${1:-follow}"
+    local container_name="super-linter-api"
     
     cd "$PROJECT_ROOT"
     
-    case $log_type in
-        app)
-            if [[ -f "logs/app.log" ]]; then
-                tail -f logs/app.log
-            else
-                log_warn "Application log file not found"
-                log_info "Start the application to generate logs"
-            fi
-            ;;
-        error)
-            if [[ -f "logs/error.log" ]]; then
-                tail -f logs/error.log
-            else
-                log_warn "Error log file not found"
-            fi
-            ;;
-        access)
-            if [[ -f "logs/access.log" ]]; then
-                tail -f logs/access.log
-            else
-                log_warn "Access log file not found"
-            fi
-            ;;
-        *)
-            echo "Log types: app, error, access"
-            ;;
-    esac
+    if docker ps -q -f name="$container_name" | grep -q .; then
+        case "$mode" in
+            follow|f)
+                log_info "Following Docker logs for $container_name..."
+                docker logs -f "$container_name"
+                ;;
+            tail|t)
+                log_info "Showing last 100 lines of Docker logs..."
+                docker logs --tail 100 "$container_name"
+                ;;
+            all|a)
+                log_info "Showing all Docker logs..."
+                docker logs "$container_name"
+                ;;
+            *)
+                log_info "Following Docker logs for $container_name..."
+                docker logs -f "$container_name"
+                ;;
+        esac
+    else
+        log_warn "Container '$container_name' is not running"
+        log_info "Use 'pnpm dev docker run' to start the container"
+        return 1
+    fi
 }
 
 check_health() {

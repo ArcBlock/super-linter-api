@@ -38,7 +38,7 @@ setup_environment() {
     export LOG_LEVEL="${LOG_LEVEL:-info}"
     export DATABASE_PATH="${DATABASE_PATH:-/app/data/super-linter-api.db}"
     export SUPERLINTER_AVAILABLE="${SUPERLINTER_AVAILABLE:-true}"
-    export DEFAULT_WORKSPACE="${DEFAULT_WORKSPACE:-/app/workspace}"
+    export DEFAULT_WORKSPACE="${DEFAULT_WORKSPACE:-/app/data/workspace}"
     
     # Super-linter specific environment variables
     export RUN_LOCAL="${RUN_LOCAL:-true}"
@@ -214,7 +214,7 @@ case "${1:-}" in
         echo "  DATABASE_PATH                   SQLite database path"
         echo "  RUN_MIGRATIONS                  Run DB migrations on startup (default: false)"
         echo "  SUPERLINTER_AVAILABLE           Enable Super-linter features (default: true)"
-        echo "  DEFAULT_WORKSPACE               Workspace directory (default: /app/workspace)"
+        echo "  DEFAULT_WORKSPACE               Workspace directory (default: /app/data/workspace)"
         echo ""
         exit 0
         ;;

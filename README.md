@@ -9,6 +9,14 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ## 🚀 Features
 
+### ⚡ Simplified Setup
+
+- **Single Command Start**: Ready in ~10 seconds with `docker run`
+- **Single Directory**: All persistent data in one volume mount
+- **Auto-Initialize**: Database schema created automatically
+- **Console Logging**: Standard container logging (no custom log files)
+- **No Configuration**: Works out-of-the-box with sensible defaults
+
 ### Comprehensive Linting Support
 
 - **Complete Integration**: Built on Super-linter base image with 50+ linters pre-installed (18 commonly used ones exposed via API)
@@ -57,24 +65,38 @@ This API implements **18 commonly used linters** from Super-linter's 50+ availab
 
 ### Using Docker (Recommended)
 
-#### Pre-built Images (Multi-Registry)
+#### Simple Setup with Persistent Data
+
 ```bash
-# From Docker Hub
+# Create data directory for database and workspace
+mkdir -p ./data
+
+# Start with persistent storage (single volume mount)
+docker run -d \
+  --name super-linter-api \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  arcblock/super-linter-api:latest
+
+# API ready in ~10 seconds!
+curl http://localhost:3000/health
+```
+
+#### Quick Test (No Persistent Data)
+
+```bash
+# For testing - no volume mounts needed
+docker run --rm -p 3000:3000 arcblock/super-linter-api:latest
+```
+
+#### Pre-built Images (Multi-Registry)
+
+```bash
+# From Docker Hub (recommended)
 docker pull arcblock/super-linter-api:latest
-docker run -p 3000:3000 arcblock/super-linter-api:latest
 
 # From GitHub Container Registry
 docker pull ghcr.io/arcblock/super-linter-api:latest
-docker run -p 3000:3000 ghcr.io/arcblock/super-linter-api:latest
-```
-
-#### Build Locally
-```bash
-# Build the Super-linter enabled image
-docker build -t arcblock/super-linter-api .
-
-# Run with full linter support
-docker run -p 3000:3000 arcblock/super-linter-api
 ```
 
 ### Local Development
@@ -207,10 +229,13 @@ curl -X POST http://localhost:3000/eslint/json \
 # Server Configuration
 PORT=3000
 NODE_ENV=production
-LOG_LEVEL=info
+LOG_LEVEL=info                # Logs to console only
 
-# Database
+# Database (auto-initialized)
 DATABASE_PATH=/app/data/super-linter-api.db
+
+# Workspace (single directory)
+DEFAULT_WORKSPACE=/app/data/workspace
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
@@ -221,9 +246,30 @@ ALLOWED_ORIGINS=https://example.com,https://app.example.com
 
 # Super-linter specific
 SUPERLINTER_AVAILABLE=true
-DEFAULT_WORKSPACE=/tmp/lint
 RUN_LOCAL=true
 ```
+
+### Logging
+
+The API uses **console logging only** for compatibility with container orchestration and external logging systems:
+
+```bash
+# View logs using docker logs
+docker logs super-linter-api
+
+# Follow logs in real-time
+docker logs -f super-linter-api
+
+# Last 100 lines with timestamps
+docker logs --tail 100 -t super-linter-api
+```
+
+Structured JSON logs are output to stdout/stderr and can be captured by:
+
+- Docker's logging drivers
+- Kubernetes logging
+- Container orchestration platforms
+- External logging systems (Fluentd, Logstash, etc.)
 
 ### Linter Options
 
@@ -322,14 +368,31 @@ pnpm test src/services/linter.test.ts
 
 ## 🐳 Docker
 
-### Production Docker Image
+### Production Deployment
+
+```bash
+# Create persistent data directory
+mkdir -p /opt/super-linter-api/data
+
+# Production deployment with restart policy
+docker run -d \
+  --name super-linter-api \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v /opt/super-linter-api/data:/app/data \
+  -e NODE_ENV=production \
+  -e LOG_LEVEL=warn \
+  arcblock/super-linter-api:latest
+```
+
+### Build from Source
 
 ```bash
 # Build (requires ~6GB disk space)
 docker build -t arcblock/super-linter-api .
 
 # Run with 18 exposed linters (50+ available in base image)
-docker run -p 3000:3000 arcblock/super-linter-api
+docker run -d -p 3000:3000 -v $(pwd)/data:/app/data arcblock/super-linter-api
 ```
 
 ### Docker Compose
@@ -339,17 +402,32 @@ version: '3.8'
 services:
   super-linter-api:
     image: arcblock/super-linter-api:latest
-    # Alternative: build locally
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    container_name: super-linter-api
     ports:
       - '3000:3000'
     environment:
       - NODE_ENV=production
       - LOG_LEVEL=info
     volumes:
+      # Single volume for all persistent data
       - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+```
+
+### Data Directory Structure
+
+With the single volume mount, your data directory will contain:
+
+```
+./data/
+├── super-linter-api.db    # SQLite database (cache, jobs, metrics)
+└── workspace/             # Temporary workspace for linting operations
 ```
 
 ## 🤝 Contributing
@@ -399,6 +477,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 This API currently implements the most commonly used linters from Super-linter. The following languages and tools are available in Super-linter but not yet implemented in this API:
 
 #### Infrastructure & DevOps
+
 - **Ansible**: `ansible-lint`
 - **AWS CloudFormation**: `cfn-lint`, `checkov`, `trivy`
 - **Azure ARM Templates**: `arm-ttk`, `checkov`, `trivy`
@@ -407,6 +486,7 @@ This API currently implements the most commonly used linters from Super-linter. 
 - **Helm Charts**: `checkov`
 
 #### Programming Languages
+
 - **C#/.NET**: `dotnet format`
 - **Clojure**: `clj-kondo`
 - **CoffeeScript**: `coffeelint`
@@ -419,6 +499,7 @@ This API currently implements the most commonly used linters from Super-linter. 
 - **Scala**: `scalastyle`
 
 #### Specialized Tools
+
 - **Amazon States Language**: ASL Validator
 - **Copy/paste detection**: `jscpd`
 - **Commit messages**: `commitlint`
@@ -451,6 +532,6 @@ This API currently implements the most commonly used linters from Super-linter. 
 
 **[⬆ Back to Top](#super-linter-api)**
 
-Made with ❤️ by the Super-linter API team
+Made with ❤️ by the ArcBlock Team
 
 </div>

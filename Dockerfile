@@ -56,7 +56,7 @@ RUN addgroup -g 1002 -S apiuser && \
     adduser -S apiuser -u 1002 -G apiuser
 
 # Create necessary directories with proper permissions
-RUN mkdir -p data tmp logs /app/workspace && \
+RUN mkdir -p data data/workspace && \
     chown -R apiuser:apiuser /app
 
 # Copy entrypoint script
@@ -64,7 +64,7 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create volume mount points for persistent data
-VOLUME ["/app/data", "/app/logs", "/app/workspace"]
+VOLUME ["/app/data"]
 
 # Switch to non-root user for security
 USER apiuser
@@ -82,7 +82,7 @@ ENV NODE_ENV=production \
     LOG_LEVEL=info \
     DATABASE_PATH=/app/data/super-linter-api.db \
     SUPERLINTER_AVAILABLE=true \
-    DEFAULT_WORKSPACE=/app/workspace
+    DEFAULT_WORKSPACE=/app/data/workspace
 
 # Use custom entrypoint that supports both Super-linter and our API
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
