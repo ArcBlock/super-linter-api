@@ -41,21 +41,30 @@ WORKDIR /app
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/scripts ./scripts
 
-# Create necessary directories
-RUN mkdir -p data tmp logs
+# Install ONLY production dependencies (no devDependencies)
+RUN npm install -g pnpm@10.6.5 && \
+    pnpm install --prod --frozen-lockfile && \
+    pnpm store prune && \
+    rm -rf /root/.pnpm-store /app/.pnpm /tmp/*
+
+# Create non-root user for running the API (super-linter already has users)
+RUN addgroup -g 1002 -S apiuser && \
+    adduser -S apiuser -u 1002 -G apiuser
+
+# Create necessary directories with proper permissions
+RUN mkdir -p data tmp logs /app/workspace && \
+    chown -R apiuser:apiuser /app
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Create non-root user for running the API (super-linter already has users)
-RUN addgroup -g 1002 -S apiuser && \
-    adduser -S apiuser -u 1002 -G apiuser && \
-    chown -R apiuser:apiuser /app
+# Create volume mount points for persistent data
+VOLUME ["/app/data", "/app/logs", "/app/workspace"]
 
 # Switch to non-root user for security
 USER apiuser
@@ -73,7 +82,7 @@ ENV NODE_ENV=production \
     LOG_LEVEL=info \
     DATABASE_PATH=/app/data/super-linter-api.db \
     SUPERLINTER_AVAILABLE=true \
-    DEFAULT_WORKSPACE=/tmp/lint
+    DEFAULT_WORKSPACE=/app/workspace
 
 # Use custom entrypoint that supports both Super-linter and our API
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
