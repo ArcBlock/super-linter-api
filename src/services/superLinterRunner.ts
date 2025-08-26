@@ -20,7 +20,7 @@ const SUPERLINTER_CONFIGS = {
   // JavaScript/TypeScript
   eslint: {
     executable: 'eslint',
-    args: ['--format', 'json'],
+    args: ['--format', 'json', '--config', '/action/lib/.automation/eslint.config.mjs'],
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
@@ -258,6 +258,14 @@ export class SuperLinterRunner extends LinterRunner {
     options: LinterOptions
   ): Promise<{ exit_code: number; stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
+      logger.info(`Executing Super-linter command`, {
+        executable,
+        args,
+        workspacePath,
+        timeoutMs,
+        cwd: workspacePath,
+      });
+
       const childProcess = spawn(executable, args, {
         cwd: workspacePath,
         env: {
@@ -268,7 +276,8 @@ export class SuperLinterRunner extends LinterRunner {
           // Pass through any custom options as environment variables
           ...(options.log_level && { LOG_LEVEL: options.log_level }),
         },
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['pipe', 'pipe', 'pipe'],
+        detached: false,
       });
 
       let stdout = '';
@@ -286,17 +295,26 @@ export class SuperLinterRunner extends LinterRunner {
 
       // Collect output
       childProcess.stdout?.on('data', (data: any) => {
-        stdout += data.toString();
+        const chunk = data.toString();
+        stdout += chunk;
+        logger.debug('ESLint stdout chunk', { chunk: chunk.substring(0, 200) });
       });
 
       childProcess.stderr?.on('data', (data: any) => {
-        stderr += data.toString();
+        const chunk = data.toString();
+        stderr += chunk;
+        logger.debug('ESLint stderr chunk', { chunk: chunk.substring(0, 200) });
       });
 
       childProcess.on('close', (exit_code: any) => {
         if (!finished) {
           finished = true;
           clearTimeout(timeout);
+          logger.info('linter process completed', {
+            exit_code,
+            stdoutLength: stdout.length,
+            stderrLength: stderr.length,
+          });
           resolve({
             exit_code: exit_code || 0,
             stdout: stdout.trim(),
@@ -309,7 +327,29 @@ export class SuperLinterRunner extends LinterRunner {
         if (!finished) {
           finished = true;
           clearTimeout(timeout);
+          logger.error('linter process error', { error: error.message, code: error.code });
           reject(new LinterError('LINTER_EXECUTION_FAILED', `Process error: ${error.message}`));
+        }
+      });
+
+      childProcess.on('spawn', () => {
+        logger.info('linter process spawned successfully', { pid: childProcess.pid });
+        // Close stdin to prevent hanging on input
+        if (childProcess.stdin) {
+          childProcess.stdin.end();
+        }
+      });
+
+      childProcess.on('exit', (code: any, signal: any) => {
+        logger.info('linter process exited', { code, signal, finished });
+        if (!finished && code !== null) {
+          finished = true;
+          clearTimeout(timeout);
+          resolve({
+            exit_code: code,
+            stdout: stdout.trim(),
+            stderr: stderr.trim(),
+          });
         }
       });
     });

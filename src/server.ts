@@ -45,7 +45,7 @@ async function initializeServices() {
   });
 
   const db = new DatabaseService();
-  const workspaceManager = new WorkspaceManager();
+  const workspaceManager = new WorkspaceManager(process.env.DEFAULT_WORKSPACE);
 
   // Choose the appropriate linter runner based on environment
   const linterRunner = capabilities.isSuperlinterEnvironment
