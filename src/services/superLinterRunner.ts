@@ -24,6 +24,12 @@ const SUPERLINTER_CONFIGS = {
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
+  oxlint: {
+    executable: 'oxlint',
+    args: ['--format', 'json'],
+    outputFormat: 'json',
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+  },
   prettier: {
     executable: 'prettier',
     args: ['--check', '--list-different'],
@@ -440,6 +446,25 @@ module.exports = {
                   });
                 });
               }
+            });
+          }
+          break;
+
+        case 'oxlint':
+          // Oxlint uses a different JSON structure
+          if (output && output.diagnostics && Array.isArray(output.diagnostics)) {
+            output.diagnostics.forEach((diagnostic: any) => {
+              const label = diagnostic.labels?.[0];
+              const span = label?.span;
+              issues.push({
+                file: diagnostic.filename || 'unknown',
+                line: span?.line || 1,
+                column: span?.column || 1,
+                rule: diagnostic.code || 'unknown',
+                severity: diagnostic.severity === 'error' ? 'error' : 'warning',
+                message: diagnostic.message || 'Issue detected',
+                source: linter,
+              });
             });
           }
           break;

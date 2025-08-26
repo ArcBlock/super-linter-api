@@ -25,9 +25,9 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ### Supported Linters
 
-This API implements **18 commonly used linters** from Super-linter's 50+ available tools:
+This API implements **19 commonly used linters** from Super-linter's 50+ available tools:
 
-- **JavaScript/TypeScript**: ESLint, Prettier, JSHint
+- **JavaScript/TypeScript**: ESLint, Oxlint, Prettier, JSHint
 - **Python**: Pylint, Flake8, Black, isort, Bandit, MyPy
 - **Shell**: ShellCheck
 - **Go**: golangci-lint, gofmt
@@ -170,6 +170,46 @@ Response:
 }
 ```
 
+### Fast JavaScript Linting with Oxlint
+
+For faster JavaScript/TypeScript linting, use oxlint (50-100x faster than ESLint):
+
+```bash
+# Same API, much faster execution
+curl -X POST http://localhost:3000/oxlint/json \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "const a = b; console.log(\"Hello World\");",
+    "filename": "test.js"
+  }'
+```
+
+Response (with ~3.8x speed improvement):
+
+```json
+{
+  "success": true,
+  "exit_code": 0,
+  "execution_time_ms": 759,
+  "file_count": 1,
+  "issues": [
+    {
+      "file": "test.js",
+      "line": 1,
+      "column": 7,
+      "rule": "eslint(no-unused-vars)",
+      "severity": "warning",
+      "message": "Variable 'a' is declared but never used.",
+      "source": "oxlint"
+    }
+  ]
+}
+```
+
+**Performance Comparison:**
+- **ESLint**: ~2.9 seconds
+- **Oxlint**: ~0.76 seconds (3.8x faster)
+
 ### Asynchronous Linting
 
 ```bash
@@ -220,6 +260,17 @@ curl -X POST http://localhost:3000/eslint/json \
 - `json` - Structured JSON output
 - `text` - Plain text output
 - `sarif` - SARIF format for security tools
+
+### Choosing the Right Linter
+
+For **JavaScript/TypeScript**, choose based on your needs:
+
+| Linter | Best For | Speed | Rule Coverage | Use Case |
+|--------|----------|-------|---------------|----------|
+| **oxlint** | Fast feedback, CI/CD | 🚀🚀🚀 Ultra-fast | ⚡ Essential rules | Development, quick checks |
+| **eslint** | Comprehensive analysis | 🐢 Slower | 🔍 Complete rules | Code review, final validation |
+
+**Recommendation**: Use oxlint for fast development feedback, eslint for thorough code review.
 
 ## ⚙️ Configuration
 

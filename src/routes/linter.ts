@@ -22,6 +22,7 @@ const inflateAsync = promisify(inflateRaw);
 // Validation schemas
 const LinterParamSchema = z.enum([
   'eslint',
+  'oxlint',
   'pylint',
   'rubocop',
   'shellcheck',

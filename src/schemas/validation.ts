@@ -188,6 +188,7 @@ export function validateLinterSupportsFormat(linter: LinterType, format: OutputF
   // Some linters don't support all formats
   const formatSupport: Record<LinterType, OutputFormat[]> = {
     eslint: ['json', 'text'],
+    oxlint: ['json', 'text'],
     prettier: ['text'],
     jshint: ['json', 'text'],
     pylint: ['json', 'text'],

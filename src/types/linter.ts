@@ -71,6 +71,20 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
     timeout_ms: 30000,
     fix_supported: true,
   },
+  oxlint: {
+    name: 'oxlint',
+    executable: 'oxlint',
+    args: ['--format', 'json'],
+    env_vars: {},
+    supported_extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    config_files: ['.oxlintrc.json', 'oxlint.json'],
+    output_parsers: {
+      json: output => JSON.parse(output),
+      text: output => output,
+    },
+    timeout_ms: 30000,
+    fix_supported: false,
+  },
   prettier: {
     name: 'prettier',
     executable: 'prettier',
