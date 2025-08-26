@@ -19,15 +19,15 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ### Comprehensive Linting Support
 
-- **Complete Integration**: Built on Super-linter slim base image with 18 commonly used linters optimized for production
+- **Complete Integration**: Built on Super-linter slim base image with 21 commonly used linters optimized for production
 - **Production Ready**: Single optimized Docker image (~4.5GB) with all supported linters
 - **Dual Operation**: Works as standalone API or embedded in Super-linter workflows
 
 ### Supported Linters
 
-This API implements **19 commonly used linters** from Super-linter's 50+ available tools:
+This API implements **21 commonly used linters** from Super-linter's 50+ available tools:
 
-- **JavaScript/TypeScript**: ESLint, Oxlint, Prettier, JSHint
+- **JavaScript/TypeScript**: ESLint, Oxlint, Biome (format + lint), Prettier, JSHint
 - **Python**: Pylint, Flake8, Black, isort, Bandit, MyPy
 - **Shell**: ShellCheck
 - **Go**: golangci-lint, gofmt
@@ -210,6 +210,50 @@ Response (with ~3.8x speed improvement):
 - **ESLint**: ~2.9 seconds
 - **Oxlint**: ~0.76 seconds (3.8x faster)
 
+### All-in-One Formatting and Linting with Biome
+
+For fastest JavaScript/TypeScript formatting and linting, use Biome (10-100x faster than Prettier):
+
+```bash
+# Format with Biome (faster alternative to Prettier)
+curl -X POST http://localhost:3000/biome/json \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "const  greeting=\"hello\";console.log(greeting  );",
+    "filename": "test.js"
+  }'
+
+# Lint with Biome (comprehensive linting + formatting)
+curl -X POST http://localhost:3000/biome-lint/json \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "const unused = 42; console.log(\"Hello\");",
+    "filename": "test.js"
+  }'
+```
+
+Biome linting response:
+
+```json
+{
+  "success": true,
+  "exit_code": 0,
+  "execution_time_ms": 234,
+  "file_count": 1,
+  "issues": [
+    {
+      "file": "test.js",
+      "line": 1,
+      "column": 7,
+      "rule": "correctness/noUnusedVariables",
+      "severity": "error",
+      "message": "This variable is unused.",
+      "source": "biome-lint"
+    }
+  ]
+}
+```
+
 ### Asynchronous Linting
 
 ```bash
@@ -267,10 +311,16 @@ For **JavaScript/TypeScript**, choose based on your needs:
 
 | Linter | Best For | Speed | Rule Coverage | Use Case |
 |--------|----------|-------|---------------|----------|
+| **biome** | All-in-one solution | 🚀🚀🚀 Ultra-fast | 🎯 Format + lint | Modern development, single tool |
+| **biome-lint** | Comprehensive linting | 🚀🚀🚀 Ultra-fast | 🔍 Full rule set | Code quality, error detection |
 | **oxlint** | Fast feedback, CI/CD | 🚀🚀🚀 Ultra-fast | ⚡ Essential rules | Development, quick checks |
-| **eslint** | Comprehensive analysis | 🐢 Slower | 🔍 Complete rules | Code review, final validation |
+| **eslint** | Traditional analysis | 🐢 Slower | 🔍 Complete rules | Legacy projects, custom rules |
+| **prettier** | Pure formatting | 🐌 Slowest | 📝 Format only | Traditional formatting |
 
-**Recommendation**: Use oxlint for fast development feedback, eslint for thorough code review.
+**Recommendations**:
+- **New projects**: Use Biome for all-in-one formatting + linting
+- **Fast feedback**: Use oxlint for quick development checks
+- **Legacy projects**: Use eslint for comprehensive rule compatibility
 
 ## ⚙️ Configuration
 
@@ -390,7 +440,7 @@ tests/
 └── utils/           # Test utilities
 
 docker/
-└── Dockerfile  # Super-linter slim based optimized image with 18 linters
+└── Dockerfile  # Super-linter slim based optimized image with 21 linters
 ```
 
 ## 🧪 Testing
@@ -442,7 +492,7 @@ docker run -d \
 # Build (requires ~4.5GB disk space)
 docker build -t arcblock/super-linter-api .
 
-# Run with 18 optimized linters
+# Run with 21 optimized linters
 docker run -d -p 3000:3000 -v $(pwd)/data:/app/data arcblock/super-linter-api
 ```
 

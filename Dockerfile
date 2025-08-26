@@ -28,14 +28,14 @@ FROM ghcr.io/github/super-linter:slim-latest AS runtime
 # Install Node.js and pnpm on top of Super-linter
 USER root
 
-# Install Node.js 20, pnpm, oxlint, and runtime dependencies with immediate cleanup
+# Install Node.js 20, pnpm, oxlint, biome, and runtime dependencies with immediate cleanup
 RUN apk add --no-cache \
     nodejs \
     npm \
     sqlite \
     curl \
     bash \
-    && npm install -g pnpm@10.6.5 oxlint@latest \
+    && npm install -g pnpm@10.6.5 oxlint@latest @biomejs/biome@latest \
     && rm -rf /var/cache/apk/* \
               /root/.npm \
               /tmp/*
