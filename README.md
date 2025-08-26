@@ -19,8 +19,8 @@ A comprehensive HTTP API wrapper for code linting that provides **dual-environme
 
 ### Comprehensive Linting Support
 
-- **Complete Integration**: Built on Super-linter base image with 50+ linters pre-installed (18 commonly used ones exposed via API)
-- **Production Ready**: Single Docker image that includes all supported linters
+- **Complete Integration**: Built on Super-linter slim base image with 18 commonly used linters optimized for production
+- **Production Ready**: Single optimized Docker image (~4.5GB) with all supported linters
 - **Dual Operation**: Works as standalone API or embedded in Super-linter workflows
 
 ### Supported Linters
@@ -133,7 +133,7 @@ pnpm start
 ### Docker Installation
 
 ```bash
-# Build the Super-linter API image (includes 50+ linters, exposes 18 commonly used ones)
+# Build the Super-linter API image (optimized with 18 commonly used linters)
 docker build -t arcblock/super-linter-api .
 ```
 
@@ -339,7 +339,7 @@ tests/
 └── utils/           # Test utilities
 
 docker/
-└── Dockerfile  # Super-linter based image with 50+ linters (18 exposed)
+└── Dockerfile  # Super-linter slim based optimized image with 18 linters
 ```
 
 ## 🧪 Testing
@@ -388,10 +388,10 @@ docker run -d \
 ### Build from Source
 
 ```bash
-# Build (requires ~6GB disk space)
+# Build (requires ~4.5GB disk space)
 docker build -t arcblock/super-linter-api .
 
-# Run with 18 exposed linters (50+ available in base image)
+# Run with 18 optimized linters
 docker run -d -p 3000:3000 -v $(pwd)/data:/app/data arcblock/super-linter-api
 ```
 

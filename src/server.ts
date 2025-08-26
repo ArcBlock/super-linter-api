@@ -1,6 +1,4 @@
 import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import winston from 'winston';
@@ -70,30 +68,6 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // Trust proxy for rate limiting behind reverse proxies
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-}));
-
-// CORS configuration
-app.use(cors({
-  origin: NODE_ENV === 'production'
-    ? process.env.ALLOWED_ORIGINS?.split(',') || false
-    : true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-  credentials: true,
-  maxAge: 86400, // 24 hours
-}));
-
 // Compression
 app.use(compression({
   threshold: 1024, // Only compress if larger than 1KB
@@ -133,7 +107,7 @@ app.use(limiter);
 app.use((req, res, next) => {
   // Check for existing request ID from various proxy headers
   // Express.js automatically normalizes headers to lowercase
-  const existingRequestId = 
+  const existingRequestId =
     req.headers['x-request-id'] ||
     req.headers['request-id'] ||
     req.headers['x-correlation-id'] ||
@@ -142,20 +116,20 @@ app.use((req, res, next) => {
 
   // Validate existing request ID (must be non-empty string, reasonable length)
   const isValidRequestId = (id: any): id is string => {
-    return typeof id === 'string' && 
-           id.trim().length > 0 && 
+    return typeof id === 'string' &&
+           id.trim().length > 0 &&
            id.length <= 256 && // Reasonable max length
            !/[\r\n\t\0]/.test(id) && // No control characters
            id === id.trim(); // No leading/trailing whitespace
   };
 
   // Only generate new requestId if none found or invalid in headers
-  const requestId = isValidRequestId(existingRequestId) 
+  const requestId = isValidRequestId(existingRequestId)
     ? existingRequestId
     : `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
   (req as any).requestId = requestId;
-  
+
   // Always set the response header for downstream services
   res.setHeader('X-Request-ID', requestId);
   next();

@@ -20,7 +20,7 @@ const SUPERLINTER_CONFIGS = {
   // JavaScript/TypeScript
   eslint: {
     executable: 'eslint',
-    args: ['--format', 'json', '--config', '/action/lib/.automation/eslint.config.mjs'],
+    args: ['--format', 'json', '--no-eslintrc', '--config', '/tmp/eslint-config.js'],
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
@@ -151,6 +151,46 @@ export class SuperLinterRunner extends LinterRunner {
     super(workspaceManager);
   }
 
+  /**
+   * Create a proper ESLint configuration with recommended rules
+   */
+  private async createESLintConfig(): Promise<void> {
+    const fs = await import('fs');
+    
+    const eslintConfig = `
+module.exports = {
+  env: {
+    browser: true,
+    es6: true,
+    node: true,
+    jest: true
+  },
+  extends: [
+    'eslint:recommended'
+  ],
+  parserOptions: {
+    ecmaVersion: 2018,
+    sourceType: 'module'
+  },
+  rules: {
+    'no-unused-vars': 'error',
+    'no-undef': 'error',
+    'no-console': 'warn',
+    'semi': ['error', 'always'],
+    'quotes': ['error', 'single']
+  }
+};
+`;
+    
+    try {
+      await fs.promises.writeFile('/tmp/eslint-config.js', eslintConfig);
+      logger.debug('Created ESLint configuration file');
+    } catch (error) {
+      logger.error('Failed to create ESLint config', { error: (error as Error).message });
+      throw new LinterError('LINTER_EXECUTION_FAILED', 'Failed to create ESLint configuration');
+    }
+  }
+
   override async runLinter(execution: LinterExecution): Promise<LinterResult> {
     const { linter, workspace_path, options, timeout_ms } = execution;
     const config = SUPERLINTER_CONFIGS[linter as keyof typeof SUPERLINTER_CONFIGS];
@@ -164,6 +204,11 @@ export class SuperLinterRunner extends LinterRunner {
     }
 
     logger.info(`Running Super-linter: ${linter}`, { workspace_path, linter });
+
+    // Create ESLint config if needed
+    if (linter === 'eslint') {
+      await this.createESLintConfig();
+    }
 
     // Validate workspace
     const validation = await this.workspaceManager.validateWorkspace(workspace_path);

@@ -157,6 +157,7 @@ via child processes (can be adapted to embed within Super-linter later)
 **Final Verification Status**: ✅ **PASSED** (13/16 tests passing - 81.3% success rate)
 
 #### ✅ **Working Features**:
+
 - **POST endpoints**: All POST sync endpoints working perfectly (JSON payloads, tar.gz archives, all formats)
 - **Admin endpoints**: Linters info, metrics, cache stats, and cache clearing all functional
 - **Error handling**: Invalid linter/format validation working correctly
@@ -166,17 +167,20 @@ via child processes (can be adapted to embed within Super-linter later)
 - **Security**: Input validation and workspace path validation working correctly
 
 #### ⚠️ **Minor Issues Remaining** (3 failed tests):
+
 - **GET endpoints**: 404 errors due to invalid deflate+base64 test data (routes are working correctly)
 - **Job status retrieval**: JSON parsing error when fetching completed job results
 - **Content validation**: Edge case with missing content validation in POST requests
 
 #### 🔧 **Critical Fixes Applied**:
+
 1. **SQL Injection Prevention**: Implemented comprehensive parameter escaping for complex JSON content
 2. **Database Schema**: Updated to include all required columns (job_id, content, archive, filename)
 3. **Workspace Security**: Fixed path validation logic to prevent directory traversal
 4. **Route Registration**: All Phase 3 endpoints properly registered and responding
 
 #### 📊 **Test Results Summary**:
+
 ```
 ✅ Passed: 13 tests
 ❌ Failed: 3 tests
@@ -216,7 +220,6 @@ The Phase 3 implementation is **production-ready** for the core functionality. T
 - [ ] Test error scenarios (timeouts, large files)
 - [ ] Test rate limiting and security features
 - [x] Test async job processing end-to-end
-
 
 **Milestone 4**: ✅ Comprehensive test suite with >90% code coverage
 
@@ -301,7 +304,54 @@ The Phase 3 implementation is **production-ready** for the core functionality. T
 
 ## Phase 7: Production Hardening & Optimization (Week 4+)
 
-### 7.1 Security Hardening
+### 7.1 Docker Image Size Optimization
+
+**Current Image Size**: ~4-6GB (using Super-linter full version)
+**Target Size**: ~1-2GB (50-70% reduction)
+
+#### Priority 1: High Impact, Low Risk
+
+- [ ] **Use Super-linter Slim Version**
+  - Change `FROM ghcr.io/super-linter/super-linter:latest` to `FROM ghcr.io/super-linter/super-linter/slim:latest`
+  - **Size reduction**: 50-70% smaller (biggest single improvement)
+  - **Risk**: Some linters might not be available in slim version - need compatibility verification
+  - **Action**: Verify all supported linters are available in slim version before switching
+
+#### Priority 2: Package Management Optimization
+
+- [ ] **Remove Redundant Package Installations**
+  - Remove duplicate pnpm installations (lines 8, 37, and 49 in Dockerfile)
+  - Remove npm after pnpm installation if not needed at runtime
+  - **Size reduction**: 50-100MB
+  - **Risk**: Low - just removes redundancy
+
+#### Priority 3: Enhanced Cleanup
+
+- [ ] **Aggressive Cache and Temporary File Removal**
+  - Clear all package manager caches (`/var/cache/apk/*`, `/tmp/*`, `/var/tmp/*`)
+  - Remove man pages, docs, and locale files not needed in production
+  - **Size reduction**: 100-300MB
+  - **Risk**: Medium - might remove files needed for debugging
+
+#### Priority 4: Layer Optimization
+
+- [ ] **Combine RUN Commands and Optimize Layers**
+  - Merge related RUN commands to reduce layers
+  - Order layers by change frequency (least to most frequent)
+  - Use `.dockerignore` to exclude unnecessary build context files
+  - **Size reduction**: 5-15%
+  - **Risk**: Very low
+
+#### Priority 5: Runtime Dependencies Minimization
+
+- [ ] **Minimize Runtime Package Dependencies**
+  - Remove `npm` if only pnpm is needed at runtime
+  - Consider `wget` instead of `curl` (smaller footprint)
+  - Use minimal sqlite3 binary instead of full package if possible
+  - **Size reduction**: 20-50MB
+  - **Risk**: Low if dependencies aren't actually needed
+
+### 7.2 Security Hardening
 
 - [ ] Add input sanitization and validation
 - [ ] Implement request signing (optional)
@@ -310,7 +360,7 @@ The Phase 3 implementation is **production-ready** for the core functionality. T
 - [ ] Add DDoS protection recommendations
 - [ ] Security scanning and vulnerability assessment
 
-### 7.2 Performance Optimization
+### 7.3 Performance Optimization
 
 - [ ] Add connection pooling and keep-alive
 - [ ] Implement response compression

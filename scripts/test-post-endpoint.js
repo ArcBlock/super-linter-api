@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function testPostEndpoint() {
   const testData = {
-    content: `const t = ${Math.random()}; console.log("Hello World");`,
+    content: `const t = ${Math.random()}; console.log("Hello World"); const a = b;`,
     filename: 'hello.js',
     options: {
       validate_all: false,

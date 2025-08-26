@@ -124,3 +124,27 @@ Jenkinsfile
 # Development scripts that shouldn't be in container
 scripts/dev.sh
 scripts/test-*.js
+scripts/build.sh
+scripts/release.sh
+
+# Additional build context optimizations
+*.md
+TODO.md
+DOCKER_VARIANTS.md
+tests/
+test/
+spec/
+
+# Docker build artifacts
+.dockerignore
+Dockerfile.*
+docker-entrypoint-slim.sh
+
+# Development databases and data
+data/*.db*
+data/workspace/*
+
+# Additional cache and temp files
+.cache/
+.vscode/
+.idea/
