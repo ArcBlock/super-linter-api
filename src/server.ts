@@ -85,15 +85,19 @@ app.use(express.json({
 app.use(express.text({ limit: '50mb' })); // Add text parsing for plain text content
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 minutes default
+const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || (NODE_ENV === 'production' ? '100' : '1000'), 10);
+const RATE_LIMIT_MESSAGE = process.env.RATE_LIMIT_MESSAGE || 'Too many requests, please try again later';
+
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: NODE_ENV === 'production' ? 100 : 1000, // requests per window
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX_REQUESTS,
   message: {
     success: false,
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests, please try again later',
+      message: RATE_LIMIT_MESSAGE,
       timestamp: new Date().toISOString(),
     }
   },

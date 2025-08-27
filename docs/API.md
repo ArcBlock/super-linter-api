@@ -11,17 +11,17 @@ https://your-domain.com  # Production deployment
 
 ## 📋 **Endpoints Overview**
 
-| Endpoint | Method | Description | Use Case |
-|----------|--------|-------------|----------|
-| `GET /` | GET | API information | Service discovery |
-| `GET /health` | GET | Health check | Monitoring, readiness |
-| `GET /linters` | GET | Available linters | Client configuration |
-| `POST /{linter}/{format}` | POST | Synchronous linting | Real-time feedback |
-| `POST /{linter}/{format}/async` | POST | Asynchronous linting | Long-running jobs |
-| `GET /jobs/{job_id}` | GET | Job status/results | Async job tracking |
-| `DELETE /jobs/{job_id}` | DELETE | Cancel job | Job management |
-| `GET /metrics` | GET | API metrics | Monitoring, analytics |
-| `DELETE /cache` | DELETE | Clear cache | Cache management |
+| Endpoint                        | Method | Description          | Use Case              |
+| ------------------------------- | ------ | -------------------- | --------------------- |
+| `GET /`                         | GET    | API information      | Service discovery     |
+| `GET /health`                   | GET    | Health check         | Monitoring, readiness |
+| `GET /linters`                  | GET    | Available linters    | Client configuration  |
+| `POST /{linter}/{format}`       | POST   | Synchronous linting  | Real-time feedback    |
+| `POST /{linter}/{format}/async` | POST   | Asynchronous linting | Long-running jobs     |
+| `GET /jobs/{job_id}`            | GET    | Job status/results   | Async job tracking    |
+| `DELETE /jobs/{job_id}`         | DELETE | Cancel job           | Job management        |
+| `GET /metrics`                  | GET    | API metrics          | Monitoring, analytics |
+| `DELETE /cache`                 | DELETE | Clear cache          | Cache management      |
 
 ---
 
@@ -32,11 +32,13 @@ https://your-domain.com  # Production deployment
 Returns basic API information and available linters.
 
 **Request:**
+
 ```bash
 curl http://localhost:3000/
 ```
 
 **Response:**
+
 ```json
 {
   "name": "Super-linter API",
@@ -62,11 +64,13 @@ curl http://localhost:3000/
 System health and status information.
 
 **Request:**
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -87,10 +91,22 @@ curl http://localhost:3000/health
     "total": 21,
     "available_count": 16,
     "available": [
-      "eslint", "oxlint", "biome", "biome-lint", "prettier",
-      "pylint", "flake8", "black", "isort", "mypy",
-      "shellcheck", "golangci-lint", "hadolint", "yamllint",
-      "markdownlint", "stylelint"
+      "eslint",
+      "oxlint",
+      "biome",
+      "biome-lint",
+      "prettier",
+      "pylint",
+      "flake8",
+      "black",
+      "isort",
+      "mypy",
+      "shellcheck",
+      "golangci-lint",
+      "hadolint",
+      "yamllint",
+      "markdownlint",
+      "stylelint"
     ]
   },
   "uptime_ms": 1234567
@@ -102,11 +118,13 @@ curl http://localhost:3000/health
 Detailed information about all configured linters.
 
 **Request:**
+
 ```bash
 curl http://localhost:3000/linters
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -137,12 +155,14 @@ curl http://localhost:3000/linters
 Lint code synchronously and get immediate results.
 
 **URL Parameters:**
+
 - `linter`: Linter name (eslint, oxlint, pylint, etc.)
 - `format`: Output format (json, text, sarif)
 
 **Request Body Options:**
 
 #### 1. Plain Text Content
+
 ```bash
 curl -X POST http://localhost:3000/eslint/json \
   -H "Content-Type: text/plain" \
@@ -150,6 +170,7 @@ curl -X POST http://localhost:3000/eslint/json \
 ```
 
 #### 2. JSON with Content
+
 ```bash
 curl -X POST http://localhost:3000/eslint/json \
   -H "Content-Type: application/json" \
@@ -164,6 +185,7 @@ curl -X POST http://localhost:3000/eslint/json \
 ```
 
 #### 3. Base64 Archive Upload
+
 ```bash
 curl -X POST http://localhost:3000/eslint/json \
   -H "Content-Type: application/json" \
@@ -178,17 +200,19 @@ curl -X POST http://localhost:3000/eslint/json \
 ```
 
 **Linter Options:**
+
 ```json
 {
   "options": {
-    "validate_all": false,        // Lint all files vs first file only
-    "exclude_patterns": [],       // Files/dirs to exclude
-    "include_patterns": [],       // Files/dirs to include  
-    "log_level": "INFO",         // DEBUG, INFO, WARN, ERROR
-    "timeout": 30000,            // Timeout in milliseconds
-    "fix": false,                // Apply auto-fixes if supported
+    "validate_all": false, // Lint all files vs first file only
+    "exclude_patterns": [], // Files/dirs to exclude
+    "include_patterns": [], // Files/dirs to include
+    "log_level": "INFO", // DEBUG, INFO, WARN, ERROR
+    "timeout": 30000, // Timeout in milliseconds
+    "fix": false, // Apply auto-fixes if supported
     "config_file": ".eslintrc.json", // Custom config file
-    "rules": {                   // Override specific rules
+    "rules": {
+      // Override specific rules
       "no-console": "warn",
       "semi": "error"
     }
@@ -197,6 +221,7 @@ curl -X POST http://localhost:3000/eslint/json \
 ```
 
 **Response (JSON format):**
+
 ```json
 {
   "success": true,
@@ -225,6 +250,7 @@ curl -X POST http://localhost:3000/eslint/json \
 ```
 
 **Response (Text format):**
+
 ```json
 {
   "success": true,
@@ -240,6 +266,7 @@ curl -X POST http://localhost:3000/eslint/json \
 Submit long-running linting jobs and get results later.
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:3000/eslint/json/async \
   -H "Content-Type: application/json" \
@@ -252,6 +279,7 @@ curl -X POST http://localhost:3000/eslint/json/async \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -272,11 +300,13 @@ curl -X POST http://localhost:3000/eslint/json/async \
 Check the status and results of an asynchronous job.
 
 **Request:**
+
 ```bash
 curl http://localhost:3000/jobs/job_1642234567890_abc123
 ```
 
 **Response (Pending):**
+
 ```json
 {
   "success": true,
@@ -287,10 +317,11 @@ curl http://localhost:3000/jobs/job_1642234567890_abc123
 ```
 
 **Response (Running):**
+
 ```json
 {
   "success": true,
-  "job_id": "job_1642234567890_abc123", 
+  "job_id": "job_1642234567890_abc123",
   "status": "running",
   "created_at": "2024-01-15T10:30:00.000Z",
   "started_at": "2024-01-15T10:30:05.000Z"
@@ -298,13 +329,14 @@ curl http://localhost:3000/jobs/job_1642234567890_abc123
 ```
 
 **Response (Completed):**
+
 ```json
 {
   "success": true,
   "job_id": "job_1642234567890_abc123",
   "status": "completed",
   "created_at": "2024-01-15T10:30:00.000Z",
-  "started_at": "2024-01-15T10:30:05.000Z", 
+  "started_at": "2024-01-15T10:30:05.000Z",
   "completed_at": "2024-01-15T10:30:08.000Z",
   "execution_time_ms": 3000,
   "result": {
@@ -317,11 +349,12 @@ curl http://localhost:3000/jobs/job_1642234567890_abc123
 ```
 
 **Response (Failed):**
+
 ```json
 {
   "success": true,
   "job_id": "job_1642234567890_abc123",
-  "status": "failed", 
+  "status": "failed",
   "created_at": "2024-01-15T10:30:00.000Z",
   "started_at": "2024-01-15T10:30:05.000Z",
   "completed_at": "2024-01-15T10:30:07.000Z",
@@ -335,11 +368,13 @@ curl http://localhost:3000/jobs/job_1642234567890_abc123
 Cancel a running or pending job.
 
 **Request:**
+
 ```bash
 curl -X DELETE http://localhost:3000/jobs/job_1642234567890_abc123
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -358,11 +393,13 @@ curl -X DELETE http://localhost:3000/jobs/job_1642234567890_abc123
 Get performance and usage metrics.
 
 **Request:**
+
 ```bash
 curl http://localhost:3000/metrics
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -382,7 +419,7 @@ curl http://localhost:3000/metrics
       {
         "job_id": "job_123",
         "status": "running",
-        "linter": "pylint", 
+        "linter": "pylint",
         "started_at": "2024-01-15T10:25:00.000Z"
       }
     ],
@@ -405,11 +442,13 @@ curl http://localhost:3000/metrics
 Clear the internal result cache.
 
 **Request:**
+
 ```bash
 curl -X DELETE http://localhost:3000/cache
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -439,25 +478,26 @@ All errors follow a consistent format:
 
 ### Common Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid request parameters |
-| `INVALID_PARAMETERS` | 400 | Invalid linter or format |
-| `UNSUPPORTED_FORMAT` | 400 | Linter doesn't support format |
-| `LINTER_EXECUTION_FAILED` | 500 | Linter execution error |
-| `TIMEOUT_ERROR` | 408 | Request timeout |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `JOB_NOT_FOUND` | 404 | Job ID not found |
-| `INTERNAL_SERVER_ERROR` | 500 | Server error |
+| Code                      | HTTP Status | Description                   |
+| ------------------------- | ----------- | ----------------------------- |
+| `VALIDATION_ERROR`        | 400         | Invalid request parameters    |
+| `INVALID_PARAMETERS`      | 400         | Invalid linter or format      |
+| `UNSUPPORTED_FORMAT`      | 400         | Linter doesn't support format |
+| `LINTER_EXECUTION_FAILED` | 500         | Linter execution error        |
+| `TIMEOUT_ERROR`           | 408         | Request timeout               |
+| `RATE_LIMIT_EXCEEDED`     | 429         | Too many requests             |
+| `JOB_NOT_FOUND`           | 404         | Job ID not found              |
+| `INTERNAL_SERVER_ERROR`   | 500         | Server error                  |
 
 ### Example Error Responses
 
 **Invalid Linter:**
+
 ```json
 {
   "success": false,
   "error": {
-    "code": "INVALID_PARAMETERS", 
+    "code": "INVALID_PARAMETERS",
     "message": "Invalid linter: 'invalid-linter'",
     "timestamp": "2024-01-15T10:30:00.000Z"
   }
@@ -465,6 +505,7 @@ All errors follow a consistent format:
 ```
 
 **Linter Execution Failed:**
+
 ```json
 {
   "success": false,
@@ -497,16 +538,16 @@ jobs:
     services:
       linter-api:
         image: arcblock/super-linter-api:latest
-        ports: ["3000:3000"]
-        
+        ports: ['3000:3000']
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Lint JavaScript
         run: |
           response=$(curl -s -X POST http://localhost:3000/eslint/json \
             -d "{\"archive\": \"$(tar czf - . | base64 -w 0)\"}")
-          
+
           success=$(echo "$response" | jq -r '.success')
           if [ "$success" != "true" ]; then
             echo "Linting failed:"
@@ -524,27 +565,27 @@ class LinterAPI {
   constructor(baseURL = 'http://localhost:3000') {
     this.client = axios.create({ baseURL });
   }
-  
+
   async lintCode(linter, code, options = {}) {
     try {
       const response = await this.client.post(`/${linter}/json`, {
         content: code,
-        options
+        options,
       });
       return response.data;
     } catch (error) {
       throw new Error(`Linting failed: ${error.response?.data?.error?.message}`);
     }
   }
-  
+
   async lintAsync(linter, code, options = {}) {
     const response = await this.client.post(`/${linter}/json/async`, {
       content: code,
-      options
+      options,
     });
     return response.data.job_id;
   }
-  
+
   async getJobResult(jobId) {
     const response = await this.client.get(`/jobs/${jobId}`);
     return response.data;
@@ -568,41 +609,41 @@ import time
 class LinterAPI:
     def __init__(self, base_url='http://localhost:3000'):
         self.base_url = base_url
-        
+
     def lint_code(self, linter, code, options=None):
         url = f"{self.base_url}/{linter}/json"
         payload = {
             'content': code,
             'options': options or {}
         }
-        
+
         response = requests.post(url, json=payload)
         response.raise_for_status()
         return response.json()
-    
+
     def lint_async(self, linter, code, options=None):
-        url = f"{self.base_url}/{linter}/json/async" 
+        url = f"{self.base_url}/{linter}/json/async"
         payload = {
             'content': code,
             'options': options or {}
         }
-        
+
         response = requests.post(url, json=payload)
         response.raise_for_status()
         return response.json()['job_id']
-    
+
     def wait_for_job(self, job_id, timeout=60):
         start_time = time.time()
-        
+
         while time.time() - start_time < timeout:
             response = requests.get(f"{self.base_url}/jobs/{job_id}")
             job_data = response.json()
-            
+
             if job_data['status'] in ['completed', 'failed', 'cancelled']:
                 return job_data
-                
+
             time.sleep(1)
-            
+
         raise TimeoutError(f"Job {job_id} did not complete within {timeout}s")
 
 # Usage
@@ -612,7 +653,7 @@ linter = LinterAPI()
 result = linter.lint_code('pylint', 'print("hello world")')
 print(f"Found {len(result['issues'])} issues")
 
-# Asynchronous linting  
+# Asynchronous linting
 job_id = linter.lint_async('pylint', large_code_file)
 final_result = linter.wait_for_job(job_id)
 ```
@@ -623,11 +664,20 @@ final_result = linter.wait_for_job(job_id)
 
 The API implements rate limiting to prevent abuse:
 
-- **Default**: 100 requests per 15 minutes per IP
+- **Default**: 100 requests per 15 minutes per IP (production), 1000 requests per 15 minutes (development)
 - **Headers**: Rate limit info in response headers
-- **Burst**: Up to 10 concurrent requests
+- **Configurable**: Rate limiting can be configured via environment variables
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RATE_LIMIT_WINDOW_MS` | `900000` | Rate limit window in milliseconds (15 minutes) |
+| `RATE_LIMIT_MAX_REQUESTS` | `100` (prod), `1000` (dev) | Maximum requests per window per IP |
+| `RATE_LIMIT_MESSAGE` | `Too many requests, please try again later` | Custom rate limit error message |
 
 **Rate Limit Headers:**
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -635,6 +685,7 @@ X-RateLimit-Reset: 1642235567
 ```
 
 **Rate Limit Error:**
+
 ```json
 {
   "success": false,
@@ -661,4 +712,4 @@ Future versions may include built-in authentication options.
 
 ---
 
-*This API documentation is automatically updated. Last updated: $(date).*
+_This API documentation is automatically updated. Last updated: $(date)._
