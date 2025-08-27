@@ -1,0 +1,9 @@
+rules:
+  - id: pref_4f769288e7ae7ec3
+    active: true
+    scope: document
+    rule: 文档中仅包含公共 API 中使用的数据类型。
+    feedback: Please only include types used in public facing APIs in this doc
+    createdAt: 2025-08-27T10:18:13.073Z
+    paths:
+      - /api-reference/data-types

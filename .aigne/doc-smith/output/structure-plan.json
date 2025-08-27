@@ -1,0 +1,212 @@
+[
+  {
+    "title": "Overview",
+    "description": "A high-level introduction to the Super-linter API, covering its purpose, key features, and target use cases for developers and DevOps teams.",
+    "path": "/overview",
+    "parentId": null,
+    "sourceIds": [
+      "README.md",
+      "docs/API.md",
+      "src/server.ts"
+    ]
+  },
+  {
+    "title": "Getting Started",
+    "description": "A concise, step-by-step guide to running the API with Docker and making your first linting request to verify the setup.",
+    "path": "/getting-started",
+    "parentId": null,
+    "sourceIds": [
+      "README.md",
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Guides",
+    "description": "Practical tutorials and integration examples to solve common use cases, from linting a full project to CI/CD integration.",
+    "path": "/guides",
+    "parentId": null,
+    "sourceIds": [
+      "docs/API.md",
+      "src/services/workspace.ts",
+      "src/routes/linter.ts"
+    ]
+  },
+  {
+    "title": "Lint a Full Project",
+    "description": "Learn how to lint an entire local project by packaging it as a tar.gz archive and submitting it via a base64-encoded request.",
+    "path": "/guides/lint-project",
+    "parentId": "/guides",
+    "sourceIds": [
+      "docs/API.md",
+      "src/services/workspace.ts",
+      "src/routes/linter.ts"
+    ]
+  },
+  {
+    "title": "Integrate with CI/CD",
+    "description": "Step-by-step instructions and examples for integrating the Super-linter API into a CI/CD pipeline, featuring a complete GitHub Actions workflow.",
+    "path": "/guides/ci-cd-integration",
+    "parentId": "/guides",
+    "sourceIds": [
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Using SDK Examples",
+    "description": "Code examples demonstrating how to interact with the API using client libraries in popular languages like Node.js and Python.",
+    "path": "/guides/sdk-examples",
+    "parentId": "/guides",
+    "sourceIds": [
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Core Concepts",
+    "description": "In-depth explanations of the fundamental components and architecture of the API, such as the linting process, job management, and caching.",
+    "path": "/concepts",
+    "parentId": null,
+    "sourceIds": [
+      "src/services/linter.ts",
+      "src/services/jobManager.ts",
+      "src/services/cache.ts",
+      "src/services/workspace.ts",
+      "src/services/superLinterRunner.ts"
+    ]
+  },
+  {
+    "title": "Linting Execution",
+    "description": "An explanation of the lifecycle of a linting request, including workspace creation, linter process execution, and output parsing.",
+    "path": "/concepts/linting-execution",
+    "parentId": "/concepts",
+    "sourceIds": [
+      "src/services/linter.ts",
+      "src/services/superLinterRunner.ts",
+      "src/services/workspace.ts",
+      "src/types/linter.ts"
+    ]
+  },
+  {
+    "title": "Asynchronous Jobs",
+    "description": "Details on how the asynchronous job system works, covering job submission, status tracking, cancellation, and processing.",
+    "path": "/concepts/async-jobs",
+    "parentId": "/concepts",
+    "sourceIds": [
+      "src/services/jobManager.ts",
+      "src/types/database.ts",
+      "src/services/database.ts",
+      "src/routes/linter.ts"
+    ]
+  },
+  {
+    "title": "Caching Layer",
+    "description": "A look into the caching mechanism, explaining how content and option hashes are generated to optimize performance for repeated requests.",
+    "path": "/concepts/caching",
+    "parentId": "/concepts",
+    "sourceIds": [
+      "src/services/cache.ts",
+      "src/types/database.ts",
+      "src/services/database.ts"
+    ]
+  },
+  {
+    "title": "API Reference",
+    "description": "A complete technical reference for every API endpoint, including parameters, request bodies, response formats, and error codes.",
+    "path": "/api-reference",
+    "parentId": null,
+    "sourceIds": [
+      "docs/API.md",
+      "src/routes/linter.ts",
+      "src/types/api.ts",
+      "src/types/errors.ts",
+      "src/schemas/validation.ts"
+    ]
+  },
+  {
+    "title": "Endpoints",
+    "description": "A comprehensive list of all available API endpoints, detailing their methods, URL parameters, request bodies, and functionality.",
+    "path": "/api-reference/endpoints",
+    "parentId": "/api-reference",
+    "sourceIds": [
+      "src/routes/linter.ts",
+      "src/server.ts",
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Data Types",
+    "description": "Reference for all data structures used in API requests and responses, such as LinterOptions, LinterResult, and JobStatus objects.",
+    "path": "/api-reference/data-types",
+    "parentId": "/api-reference",
+    "sourceIds": [
+      "src/types/api.ts",
+      "src/types/linter.ts",
+      "src/types/database.ts"
+    ]
+  },
+  {
+    "title": "Error Codes",
+    "description": "A dictionary of all possible error codes, their meanings, and the HTTP status they correspond to, ensuring robust error handling.",
+    "path": "/api-reference/error-codes",
+    "parentId": "/api-reference",
+    "sourceIds": [
+      "src/types/errors.ts",
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Operations",
+    "description": "Guides for deploying, managing, and monitoring the Super-linter API in a production environment.",
+    "path": "/operations",
+    "parentId": null,
+    "sourceIds": [
+      "README.md",
+      "src/server.ts",
+      "src/routes/linter.ts",
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Deployment",
+    "description": "Instructions for deploying the service using Docker, Docker Compose, and Kubernetes, including persistent storage configuration.",
+    "path": "/operations/deployment",
+    "parentId": "/operations",
+    "sourceIds": [
+      "README.md"
+    ]
+  },
+  {
+    "title": "Configuration",
+    "description": "A guide to all available environment variables for configuring aspects like rate limiting, logging, and workspace paths.",
+    "path": "/operations/configuration",
+    "parentId": "/operations",
+    "sourceIds": [
+      "src/server.ts",
+      "docs/API.md"
+    ]
+  },
+  {
+    "title": "Monitoring",
+    "description": "How to use the /health and /metrics endpoints for monitoring the API's health, performance, and usage statistics.",
+    "path": "/operations/monitoring",
+    "parentId": "/operations",
+    "sourceIds": [
+      "src/server.ts",
+      "src/routes/linter.ts",
+      "docs/API.md",
+      "src/services/database.ts"
+    ]
+  },
+  {
+    "title": "Supported Linters",
+    "description": "A detailed reference of all supported linters, including their versions, supported file types, and performance characteristics.",
+    "path": "/supported-linters",
+    "parentId": null,
+    "sourceIds": [
+      "docs/LINTERS.md",
+      "src/types/linter.ts",
+      "src/services/linter.ts",
+      "src/services/superLinterRunner.ts",
+      "src/services/environmentDetector.ts"
+    ]
+  }
+]
