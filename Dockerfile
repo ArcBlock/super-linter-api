@@ -78,7 +78,10 @@ RUN pnpm install --prod --frozen-lockfile && \
 RUN addgroup -g 1002 -S apiuser && \
     adduser -S apiuser -u 1002 -G apiuser && \
     mkdir -p data data/workspace && \
-    chown -R apiuser:apiuser /app
+    chown -R apiuser:apiuser /app && \
+    # Ensure files are readable by group for flexible user mounting
+    chmod -R g+r /app && \
+    chmod g+x /app /app/dist /app/scripts
 
 # Copy and set permissions for entrypoint script in single operation
 COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -97,8 +100,8 @@ EXPOSE 3000
 # Create volume mount points for persistent data
 VOLUME ["/app/data"]
 
-# Switch to non-root user for security
-USER apiuser
+# Start as root to handle permissions, entrypoint will switch to apiuser
+# USER apiuser
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

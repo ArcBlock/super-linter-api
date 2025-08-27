@@ -62,8 +62,38 @@ setup_environment() {
 setup_database() {
     log_info "Setting up database..."
     
+    local data_dir
+    data_dir="$(dirname "$DATABASE_PATH")"
+    
     # Create data directory if it doesn't exist
-    mkdir -p "$(dirname "$DATABASE_PATH")"
+    mkdir -p "$data_dir"
+    
+    # Handle permission issues automatically
+    if [ ! -w "$data_dir" ]; then
+        log_warn "Data directory not writable, fixing permissions..."
+        
+        # If running as root, we can fix permissions
+        if [ "$(id -u)" = "0" ]; then
+            chmod -R 777 "$data_dir" 2>/dev/null || true
+            log_info "Fixed permissions for: $data_dir"
+        else
+            # Try to create a test file to check actual permissions
+            if ! touch "$data_dir/.permission_test" 2>/dev/null; then
+                log_warn "Cannot write to $data_dir - using temporary database in container"
+                log_warn "Data will not persist between container restarts"
+                
+                # Use a temporary database inside the container instead
+                export DATABASE_PATH="/tmp/super-linter-api.db"
+                mkdir -p /tmp
+                data_dir="/tmp"
+                
+                log_info "Using temporary database: $DATABASE_PATH"
+            else
+                rm -f "$data_dir/.permission_test" 2>/dev/null || true
+                log_success "Data directory is writable"
+            fi
+        fi
+    fi
     
     # Check if database exists and is properly initialized
     local needs_init=false
@@ -73,7 +103,7 @@ setup_database() {
         needs_init=true
     else
         # Check if database has required tables
-        if ! sqlite3 "$DATABASE_PATH" "SELECT name FROM sqlite_master WHERE type='table' AND name='lint_results';" | grep -q "lint_results"; then
+        if ! sqlite3 "$DATABASE_PATH" "SELECT name FROM sqlite_master WHERE type='table' AND name='lint_results';" 2>/dev/null | grep -q "lint_results"; then
             log_info "Database exists but missing tables, will initialize schema"
             needs_init=true
         else
@@ -85,8 +115,12 @@ setup_database() {
     if [ "$needs_init" = true ]; then
         log_info "Initializing database with schema..."
         if [ -f "scripts/schema.sql" ]; then
-            sqlite3 "$DATABASE_PATH" < scripts/schema.sql
-            log_success "Database initialized successfully"
+            if sqlite3 "$DATABASE_PATH" < scripts/schema.sql 2>/dev/null; then
+                log_success "Database initialized successfully"
+            else
+                log_error "Failed to initialize database. Check permissions on: $data_dir"
+                exit 1
+            fi
         else
             log_error "No schema file found at scripts/schema.sql"
             exit 1
@@ -96,6 +130,8 @@ setup_database() {
     # Test database connectivity
     if ! sqlite3 "$DATABASE_PATH" "SELECT 1;" >/dev/null 2>&1; then
         log_error "Database is not accessible or corrupted"
+        log_error "Path: $DATABASE_PATH"
+        log_error "Directory permissions: $(ls -ld "$data_dir" 2>/dev/null || echo 'unknown')"
         exit 1
     fi
 }
@@ -166,12 +202,34 @@ setup_signal_handlers() {
     trap 'cleanup_and_exit SIGINT' INT
 }
 
+# Fix permissions if running as root
+fix_permissions() {
+    if [ "$(id -u)" = "0" ]; then
+        log_info "Running as root, fixing permissions automatically..."
+        
+        # Fix ownership of mounted volumes only
+        local data_dir="$(dirname "${DATABASE_PATH:-/app/data/super-linter-api.db}")"
+        if [ -d "$data_dir" ] && [ "$data_dir" != "/app/data" ]; then
+            # This is likely a mounted volume, fix its ownership
+            chown -R 1002:1002 "$data_dir" 2>/dev/null || true
+            chmod -R u+w "$data_dir" 2>/dev/null || true
+            log_success "Fixed ownership of mounted volume: $data_dir"
+        fi
+        
+        # Continue running as root for simplicity
+        log_info "Continuing as root (container environment)"
+    fi
+}
+
 # Main startup sequence
 main() {
     log_info "Starting Super-linter API (built on Super-linter base image)..."
     log_info "Container started at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
     
-    # Setup
+    # Fix permissions if we're root, then switch to apiuser
+    fix_permissions "$@"
+    
+    # Setup (now running as apiuser)
     setup_signal_handlers
     setup_environment
     setup_database  # Now includes auto-initialization

@@ -183,7 +183,19 @@ _Tested on standard codebase (100 lines)_
 
 ## 🐳 **Production Deployment**
 
-### Docker Compose (Recommended)
+### Quick Start with Persistent Storage
+
+```bash
+# Just run it - permissions are handled automatically!
+docker run -d -p 3000:3000 -v "$(pwd)/data:/app/data" arcblock/super-linter-api:latest
+```
+
+That's it! The container automatically:
+- Creates the data directory if it doesn't exist
+- Fixes permissions automatically 
+- Falls back to temporary storage if needed
+
+### Docker Compose (Production)
 
 ```yaml
 version: '3.8'
