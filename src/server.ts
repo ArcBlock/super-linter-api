@@ -196,6 +196,14 @@ app.get('/health', async (req, res) => {
   try {
     const dbHealth = await db.healthCheck();
     const capabilities = await EnvironmentDetector.detectCapabilities();
+    
+    // Get consistent linter status from the same source as /linters endpoint
+    const linterStatus = await linterRunner.getAllLinterStatus();
+    const availableLinters = Object.keys(linterStatus).filter(name => {
+      const status = linterStatus[name as keyof typeof linterStatus];
+      return status?.available || false;
+    });
+    const totalLinters = Object.keys(linterStatus).length;
 
     const health = {
       status: dbHealth.status === 'healthy' ? 'healthy' : 'degraded',
@@ -210,11 +218,12 @@ app.get('/health', async (req, res) => {
       checks: {
         database: dbHealth.status === 'healthy',
         filesystem: true,
-        linters: capabilities.availableLinters.length > 0,
+        linters: availableLinters.length > 0,
       },
       linters: {
-        count: capabilities.availableLinters.length,
-        available: capabilities.availableLinters.slice(0, 10), // Show first 10
+        total: totalLinters,
+        available_count: availableLinters.length,
+        available: availableLinters, // Show all available linters (consistent with /linters)
       },
       uptime_ms: process.uptime() * 1000,
     };

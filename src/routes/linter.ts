@@ -35,6 +35,16 @@ const LinterParamSchema = z.enum([
   'golangci-lint',
   'ktlint',
   'swiftlint',
+  'markdownlint',
+  'stylelint',
+  'hadolint',
+  'yamllint',
+  'jsonlint',
+  'jshint',
+  'isort',
+  'bandit',
+  'mypy',
+  'gofmt',
 ]);
 
 const FormatParamSchema = z.enum(['json', 'text', 'sarif']);
