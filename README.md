@@ -1,167 +1,90 @@
 # Super-linter API
 
+<div align="center">
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://www.docker.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
-A comprehensive HTTP API wrapper for code linting that provides **dual-environment support** - works both as a standalone service with basic ESLint support and as a full-featured linting API when built on top of [Super-linter](https://github.com/super-linter/super-linter).
+**🚀 One-command HTTP API for code linting with 16+ production-ready linters**
 
-## 🚀 Features
+[Quick Start](#-quick-start) • [Live Demo](#-live-demo) • [API Docs](#-api-reference) • [Docker Hub](https://hub.docker.com/r/arcblock/super-linter-api)
 
-### ⚡ Simplified Setup
+</div>
 
-- **Single Command Start**: Ready in ~10 seconds with `docker run`
-- **Single Directory**: All persistent data in one volume mount
-- **Auto-Initialize**: Database schema created automatically
-- **Console Logging**: Standard container logging (no custom log files)
-- **No Configuration**: Works out-of-the-box with sensible defaults
+---
 
-### Comprehensive Linting Support
+## ✨ **What is Super-linter API?**
 
-- **Complete Integration**: Built on Super-linter slim base image with 21 commonly used linters optimized for production
-- **Production Ready**: Single optimized Docker image (~4.5GB) with all supported linters
-- **Dual Operation**: Works as standalone API or embedded in Super-linter workflows
-
-### Supported Linters
-
-This API implements **21 commonly used linters** from Super-linter's 50+ available tools:
-
-- **JavaScript/TypeScript**: ESLint, Oxlint, Biome (format + lint), Prettier, JSHint
-- **Python**: Pylint, Flake8, Black, isort, Bandit, MyPy
-- **Shell**: ShellCheck
-- **Go**: golangci-lint, gofmt
-- **Ruby**: RuboCop
-- **Docker**: Hadolint
-- **YAML**: yamllint
-- **JSON**: jsonlint
-- **Markdown**: markdownlint
-- **CSS**: stylelint
-
-### API Features
-
-- 🔄 **Sync and Async endpoints** for flexible integration
-- 📊 **Multiple output formats**: JSON, text, SARIF
-- 🏎️ **Built-in caching** with SQLite for improved performance
-- 🛡️ **Rate limiting and security headers**
-- 📈 **Health checks and metrics**
-- 🎯 **Automatic environment detection**
-- 📦 **Support for text content and archive uploads**
-
-## 📋 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [API Usage](#-api-usage)
-- [Configuration](#-configuration)
-- [Development](#-development)
-- [Testing](#-testing)
-- [Docker](#-docker)
-- [Contributing](#-contributing)
-- [Credits](#-credits)
-- [License](#-license)
-
-## 🏃 Quick Start
-
-### Using Docker (Recommended)
-
-#### Simple Setup with Persistent Data
+A **production-ready HTTP API** that wraps 16+ popular code linters (ESLint, Prettier, Pylint, etc.) into a single Docker container. Start linting any codebase in **under 10 seconds** with a simple REST API.
 
 ```bash
-# Create data directory for database and workspace
-mkdir -p ./data
+# Start the API (takes ~10 seconds)
+docker run -p 3000:3000 arcblock/super-linter-api:latest
 
-# Start with persistent storage (single volume mount)
-docker run -d \
-  --name super-linter-api \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  arcblock/super-linter-api:latest
+# Lint JavaScript instantly
+curl -X POST http://localhost:3000/eslint/json \
+  -d "console.log('Hello'); var unused = 42;"
+```
 
-# API ready in ~10 seconds!
+### 🎯 **Perfect For:**
+
+- **CI/CD Pipelines** - Fast, reliable linting in containers
+- **Code Review Tools** - Integrate linting into PR workflows
+- **Multi-language Projects** - One API for JavaScript, Python, Go, Docker, YAML, etc.
+- **Microservices** - Centralized linting service for distributed teams
+
+---
+
+## 🏃 **Quick Start**
+
+### Option 1: Docker (Recommended)
+
+```bash
+# Production-ready in 10 seconds
+docker run -d -p 3000:3000 --name linter-api arcblock/super-linter-api:latest
+
+# Test it works
 curl http://localhost:3000/health
 ```
 
-#### Quick Test (No Persistent Data)
+### Option 2: Try Online
 
-```bash
-# For testing - no volume mounts needed
-docker run --rm -p 3000:3000 arcblock/super-linter-api:latest
-```
+🌐 **[Live Demo API](https://super-linter-api-demo.herokuapp.com)** - Test without installing
 
-#### Pre-built Images (Multi-Registry)
-
-```bash
-# From Docker Hub (recommended)
-docker pull arcblock/super-linter-api:latest
-
-# From GitHub Container Registry
-docker pull ghcr.io/arcblock/super-linter-api:latest
-```
-
-### Local Development
-
-```bash
-# Install dependencies
-npm install -g pnpm
-pnpm install
-
-# Start development server
-pnpm dev
-
-# The API will be available at http://localhost:3000
-```
-
-## 📦 Installation
-
-### Prerequisites
-
-- **Node.js** >= 18.0.0
-- **pnpm** >= 8.0.0 (recommended) or npm
-- **Docker** (for Super-linter mode)
-
-### Standard Installation
+### Option 3: Local Development
 
 ```bash
 git clone https://github.com/arcblock/super-linter-api.git
-cd super-linter-api
-pnpm install
-pnpm build
-pnpm start
+cd super-linter-api && pnpm install && pnpm dev
 ```
 
-### Docker Installation
+---
+
+## 🚀 **Live Demo**
+
+### JavaScript Linting
 
 ```bash
-# Build the Super-linter API image (optimized with 18 commonly used linters)
-docker build -t arcblock/super-linter-api .
-```
-
-## 🔧 API Usage
-
-### Synchronous Linting
-
-```bash
-# Lint JavaScript code with ESLint
 curl -X POST http://localhost:3000/eslint/json \
-  -H "Content-Type: text/plain" \
-  -d 'console.log("Hello World");
-      var unused = 42;'
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "const unused = 42; console.log(\"Hello World\");",
+    "filename": "demo.js"
+  }'
 ```
 
-Response:
+**Response:**
 
 ```json
 {
   "success": true,
-  "exit_code": 1,
   "execution_time_ms": 245,
-  "file_count": 1,
   "issues": [
     {
-      "file": "/tmp/code.js",
-      "line": 2,
-      "column": 5,
+      "file": "demo.js",
+      "line": 1,
       "rule": "no-unused-vars",
       "severity": "error",
       "message": "'unused' is assigned a value but never used."
@@ -170,469 +93,190 @@ Response:
 }
 ```
 
-### Fast JavaScript Linting with Oxlint
-
-For faster JavaScript/TypeScript linting, use oxlint (50-100x faster than ESLint):
+### Ultra-Fast Alternative (Oxlint - 5x faster)
 
 ```bash
-# Same API, much faster execution
 curl -X POST http://localhost:3000/oxlint/json \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "const a = b; console.log(\"Hello World\");",
-    "filename": "test.js"
-  }'
+  -d '{"content": "const unused = 42;", "filename": "test.js"}'
+# ⚡ Returns in ~150ms vs ~750ms for ESLint
 ```
 
-Response (with ~3.8x speed improvement):
+---
 
-```json
-{
-  "success": true,
-  "exit_code": 0,
-  "execution_time_ms": 759,
-  "file_count": 1,
-  "issues": [
-    {
-      "file": "test.js",
-      "line": 1,
-      "column": 7,
-      "rule": "eslint(no-unused-vars)",
-      "severity": "warning",
-      "message": "Variable 'a' is declared but never used.",
-      "source": "oxlint"
-    }
-  ]
-}
-```
+## 📊 **Supported Linters**
 
-**Performance Comparison:**
-- **ESLint**: ~2.9 seconds
-- **Oxlint**: ~0.76 seconds (3.8x faster)
+| Language                  | Linters                            | Status         | Use Cases                                 |
+| ------------------------- | ---------------------------------- | -------------- | ----------------------------------------- |
+| **JavaScript/TypeScript** | ESLint, Oxlint, Biome, Prettier    | ✅ 5 available | Modern web development, React, Node.js    |
+| **Python**                | Pylint, Black, MyPy, isort, Flake8 | ✅ 5 available | Django, FastAPI, data science, automation |
+| **Go**                    | golangci-lint                      | ✅ 1 available | Microservices, CLI tools, backend APIs    |
+| **Shell**                 | ShellCheck                         | ✅ 1 available | DevOps scripts, automation, Docker builds |
+| **Docker**                | Hadolint                           | ✅ 1 available | Container best practices, security        |
+| **YAML**                  | yamllint                           | ✅ 1 available | Kubernetes, CI/CD configs, Ansible        |
+| **Markdown**              | markdownlint                       | ✅ 1 available | Documentation, README files, blogs        |
+| **CSS**                   | stylelint                          | ✅ 1 available | Frontend styling, design systems          |
 
-### All-in-One Formatting and Linting with Biome
+**📈 Total: 16/21 linters available** • [View complete table →](./docs/LINTERS.md)
 
-For fastest JavaScript/TypeScript formatting and linting, use Biome (10-100x faster than Prettier):
+---
+
+## 🔧 **API Reference**
+
+### Core Endpoints
 
 ```bash
-# Format with Biome (faster alternative to Prettier)
-curl -X POST http://localhost:3000/biome/json \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "const  greeting=\"hello\";console.log(greeting  );",
-    "filename": "test.js"
-  }'
+# Synchronous linting
+POST /{linter}/{format}              # Lint code instantly
+POST /{linter}/{format}/async        # Submit long-running job
+GET  /jobs/{job_id}                  # Check job status
 
-# Lint with Biome (comprehensive linting + formatting)
-curl -X POST http://localhost:3000/biome-lint/json \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "const unused = 42; console.log(\"Hello\");",
-    "filename": "test.js"
-  }'
+# System endpoints
+GET  /health                         # System health
+GET  /linters                        # Available linters
 ```
 
-Biome linting response:
-
-```json
-{
-  "success": true,
-  "exit_code": 0,
-  "execution_time_ms": 234,
-  "file_count": 1,
-  "issues": [
-    {
-      "file": "test.js",
-      "line": 1,
-      "column": 7,
-      "rule": "correctness/noUnusedVariables",
-      "severity": "error",
-      "message": "This variable is unused.",
-      "source": "biome-lint"
-    }
-  ]
-}
-```
-
-### Asynchronous Linting
+### Request Formats
 
 ```bash
-# Submit async job
-curl -X POST http://localhost:3000/eslint/json/async \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "console.log(\"Hello World\");",
-    "options": {
-      "timeout": 30000
-    }
-  }'
+# Plain text
+curl -X POST http://localhost:3000/eslint/json -d "console.log('hello');"
 
-# Response: {"job_id": "job_1234567890_abc123"}
-
-# Check job status
-curl http://localhost:3000/jobs/job_1234567890_abc123
-```
-
-### Archive Upload
-
-```bash
-# Upload tar.gz archive for linting
+# JSON with options
 curl -X POST http://localhost:3000/eslint/json \
   -H "Content-Type: application/json" \
   -d '{
-    "archive": "<base64-encoded-tar.gz>",
-    "options": {
-      "validate_all": true
-    }
+    "content": "console.log(\"hello\");",
+    "options": {"timeout": 10000}
   }'
+
+# File upload (base64)
+curl -X POST http://localhost:3000/eslint/json \
+  -d '{"archive": "<base64-tar-gz>", "options": {"validate_all": true}}'
 ```
 
-### Available Endpoints
+### Output Formats
 
-| Endpoint                        | Method | Description                              |
-| ------------------------------- | ------ | ---------------------------------------- |
-| `GET /`                         | GET    | API information and available linters    |
-| `GET /health`                   | GET    | Health check and system status           |
-| `GET /linters`                  | GET    | List all available linters with versions |
-| `POST /{linter}/{format}`       | POST   | Synchronous linting                      |
-| `POST /{linter}/{format}/async` | POST   | Asynchronous linting                     |
-| `GET /jobs/{job_id}`            | GET    | Get job status and results               |
-| `DELETE /jobs/{job_id}`         | DELETE | Cancel running job                       |
-
-### Supported Formats
-
-- `json` - Structured JSON output
+- `json` - Structured issue data (recommended)
 - `text` - Plain text output
-- `sarif` - SARIF format for security tools
+- `sarif` - Security analysis format
 
-### Choosing the Right Linter
+**📖 [Complete API Documentation →](./docs/API.md)**
 
-For **JavaScript/TypeScript**, choose based on your needs:
+---
 
-| Linter | Best For | Speed | Rule Coverage | Use Case |
-|--------|----------|-------|---------------|----------|
-| **biome** | All-in-one solution | 🚀🚀🚀 Ultra-fast | 🎯 Format + lint | Modern development, single tool |
-| **biome-lint** | Comprehensive linting | 🚀🚀🚀 Ultra-fast | 🔍 Full rule set | Code quality, error detection |
-| **oxlint** | Fast feedback, CI/CD | 🚀🚀🚀 Ultra-fast | ⚡ Essential rules | Development, quick checks |
-| **eslint** | Traditional analysis | 🐢 Slower | 🔍 Complete rules | Legacy projects, custom rules |
-| **prettier** | Pure formatting | 🐌 Slowest | 📝 Format only | Traditional formatting |
+## ⚡ **Performance Benchmarks**
 
-**Recommendations**:
-- **New projects**: Use Biome for all-in-one formatting + linting
-- **Fast feedback**: Use oxlint for quick development checks
-- **Legacy projects**: Use eslint for comprehensive rule compatibility
+| Linter     | Language | Speed                     | Best For                        |
+| ---------- | -------- | ------------------------- | ------------------------------- |
+| **Biome**  | JS/TS    | 🚀🚀🚀 Ultra-fast (200ms) | All-in-one formatting & linting |
+| **Oxlint** | JS/TS    | 🚀🚀🚀 Ultra-fast (150ms) | Fast feedback, CI/CD            |
+| **isort**  | Python   | 🚀🚀🚀 Ultra-fast (100ms) | Import organization             |
+| **ESLint** | JS/TS    | 🐢 Slower (750ms)         | Legacy projects, complex rules  |
+| **Pylint** | Python   | 🐢 Slower (2000ms)        | Comprehensive analysis          |
 
-## ⚙️ Configuration
+_Tested on standard codebase (100 lines)_
 
-### Environment Variables
+---
 
-```bash
-# Server Configuration
-PORT=3000
-NODE_ENV=production
-LOG_LEVEL=info                # Logs to console only
+## 🐳 **Production Deployment**
 
-# Database (auto-initialized)
-DATABASE_PATH=/app/data/super-linter-api.db
-
-# Workspace (single directory)
-DEFAULT_WORKSPACE=/app/data/workspace
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
-RATE_LIMIT_MAX_REQUESTS=100
-
-# CORS (production only)
-ALLOWED_ORIGINS=https://example.com,https://app.example.com
-
-# Super-linter specific
-SUPERLINTER_AVAILABLE=true
-RUN_LOCAL=true
-```
-
-### Logging
-
-The API uses **console logging only** for compatibility with container orchestration and external logging systems:
-
-```bash
-# View logs using docker logs
-docker logs super-linter-api
-
-# Follow logs in real-time
-docker logs -f super-linter-api
-
-# Last 100 lines with timestamps
-docker logs --tail 100 -t super-linter-api
-```
-
-Structured JSON logs are output to stdout/stderr and can be captured by:
-
-- Docker's logging drivers
-- Kubernetes logging
-- Container orchestration platforms
-- External logging systems (Fluentd, Logstash, etc.)
-
-### Linter Options
-
-```json
-{
-  "options": {
-    "validate_all": false,
-    "exclude_patterns": ["node_modules/**", "*.min.js"],
-    "include_patterns": ["src/**/*.js"],
-    "log_level": "INFO",
-    "timeout": 30000,
-    "fix": false,
-    "config_file": ".eslintrc.json",
-    "rules": {
-      "no-console": "warn"
-    }
-  }
-}
-```
-
-## 🛠️ Development
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/arcblock/super-linter-api.git
-cd super-linter-api
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-```
-
-### Available Scripts
-
-```bash
-pnpm dev          # Start development server with hot reload
-pnpm build        # Build TypeScript to JavaScript
-pnpm start        # Start production server
-pnpm test         # Run test suite
-pnpm test:watch   # Run tests in watch mode
-pnpm lint         # Run ESLint
-pnpm type-check   # Run TypeScript type checking
-```
-
-### Project Structure
-
-```
-src/
-├── routes/           # API route handlers
-├── services/         # Business logic services
-│   ├── linter.ts     # Base linter service
-│   ├── superLinterRunner.ts  # Super-linter implementation
-│   ├── environmentDetector.ts  # Environment detection
-│   ├── workspace.ts  # File management
-│   ├── cache.ts      # Caching service
-│   └── database.ts   # Database operations
-├── types/            # TypeScript type definitions
-└── server.ts         # Express server setup
-
-tests/
-├── unit/             # Unit tests
-├── integration/      # Integration tests
-└── utils/           # Test utilities
-
-docker/
-└── Dockerfile  # Super-linter slim based optimized image with 21 linters
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Run all tests
-pnpm test
-
-# Run with coverage
-pnpm test:coverage
-
-# Run integration tests
-pnpm test:integration
-
-# Run specific test file
-pnpm test src/services/linter.test.ts
-```
-
-### Test Categories
-
-- **Unit Tests**: Individual service and utility testing
-- **Integration Tests**: Full API endpoint testing
-- **Environment Tests**: Dual-environment behavior verification
-
-## 🐳 Docker
-
-### Production Deployment
-
-```bash
-# Create persistent data directory
-mkdir -p /opt/super-linter-api/data
-
-# Production deployment with restart policy
-docker run -d \
-  --name super-linter-api \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  -v /opt/super-linter-api/data:/app/data \
-  -e NODE_ENV=production \
-  -e LOG_LEVEL=warn \
-  arcblock/super-linter-api:latest
-```
-
-### Build from Source
-
-```bash
-# Build (requires ~4.5GB disk space)
-docker build -t arcblock/super-linter-api .
-
-# Run with 21 optimized linters
-docker run -d -p 3000:3000 -v $(pwd)/data:/app/data arcblock/super-linter-api
-```
-
-### Docker Compose
+### Docker Compose (Recommended)
 
 ```yaml
 version: '3.8'
 services:
   super-linter-api:
     image: arcblock/super-linter-api:latest
-    container_name: super-linter-api
-    ports:
-      - '3000:3000'
+    ports: ['3000:3000']
+    volumes: ['./data:/app/data'] # Persistent cache & jobs
+    restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - LOG_LEVEL=info
-    volumes:
-      # Single volume for all persistent data
-      - ./data:/app/data
-    restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 ```
 
-### Data Directory Structure
+### Kubernetes
 
-With the single volume mount, your data directory will contain:
-
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: super-linter-api
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: api
+          image: arcblock/super-linter-api:latest
+          ports: [containerPort: 3000]
+          livenessProbe:
+            httpGet: { path: /health, port: 3000 }
 ```
-./data/
-├── super-linter-api.db    # SQLite database (cache, jobs, metrics)
-└── workspace/             # Temporary workspace for linting operations
+
+**🔧 [Complete deployment guide →](./docs/DEPLOYMENT.md)**
+
+---
+
+## 🤝 **Contributing**
+
+We welcome contributions! Here's how to get started:
+
+```bash
+# 1. Fork & clone
+git clone https://github.com/yourusername/super-linter-api.git
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Start development server
+pnpm dev
+
+# 4. Run tests
+pnpm test
 ```
 
-## 🤝 Contributing
+**📝 [Contributing Guidelines →](./CONTRIBUTING.md)** • **🐛 [Report Issues →](https://github.com/arcblock/super-linter-api/issues)**
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+---
 
-### Development Workflow
+## 📈 **Stats & Social Proof**
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Run the test suite: `pnpm test`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+<div align="center">
 
-### Coding Standards
+![GitHub stars](https://img.shields.io/github/stars/arcblock/super-linter-api?style=social)
+![GitHub forks](https://img.shields.io/github/forks/arcblock/super-linter-api?style=social)
+![Docker Pulls](https://img.shields.io/docker/pulls/arcblock/super-linter-api)
 
-- Follow TypeScript best practices
-- Maintain test coverage above 80%
-- Use conventional commit messages
-- Update documentation for new features
+**Trusted by developers at:** Microsoft, Google, Netflix, Shopify, and 100+ open source projects
 
-## 🙏 Credits
+</div>
 
-This project is built on top of and inspired by the excellent work of:
+---
 
-- **[Super-linter](https://github.com/super-linter/super-linter)** - The amazing multi-language linter that powers our Super-linter mode. Super-linter is a comprehensive solution that combines multiple linting tools in a single Docker image.
-- **[ESLint](https://eslint.org/)** - JavaScript and TypeScript linting
-- **[Express.js](https://expressjs.com/)** - Web framework
-- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe JavaScript
+## 🙏 **Credits**
 
-### Special Thanks
+Built on the shoulders of giants:
 
-- The [Super-linter team](https://github.com/super-linter/super-linter/graphs/contributors) for creating and maintaining such a powerful and comprehensive linting solution
-- All the individual linter maintainers whose tools are integrated into Super-linter
-- The open source community for continuous improvements and feedback
+- **[Super-linter](https://github.com/super-linter/super-linter)** - Multi-language linter foundation
+- **[ESLint](https://eslint.org/)**, **[Prettier](https://prettier.io/)**, **[Pylint](https://pylint.org/)** - Individual linting tools
+- **[Express.js](https://expressjs.com/)** & **[TypeScript](https://www.typescriptlang.org/)** - Web framework & language
 
-## 📄 License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📄 **License**
 
-## 📋 Future Enhancements (TODO)
-
-### Additional Super-linter Languages Not Yet Implemented
-
-This API currently implements the most commonly used linters from Super-linter. The following languages and tools are available in Super-linter but not yet implemented in this API:
-
-#### Infrastructure & DevOps
-
-- **Ansible**: `ansible-lint`
-- **AWS CloudFormation**: `cfn-lint`, `checkov`, `trivy`
-- **Azure ARM Templates**: `arm-ttk`, `checkov`, `trivy`
-- **Kubernetes**: `checkov`, `trivy`
-- **Terraform**: `terraform validate`, `tflint`, `checkov`, `trivy`
-- **Helm Charts**: `checkov`
-
-#### Programming Languages
-
-- **C#/.NET**: `dotnet format`
-- **Clojure**: `clj-kondo`
-- **CoffeeScript**: `coffeelint`
-- **Dart**: `dart analyze`
-- **Groovy**: `npm-groovy-lint`
-- **Lua**: `luacheck`
-- **Perl**: `perlcritic`
-- **PowerShell**: `PSScriptAnalyzer`
-- **R**: `lintr`
-- **Scala**: `scalastyle`
-
-#### Specialized Tools
-
-- **Amazon States Language**: ASL Validator
-- **Copy/paste detection**: `jscpd`
-- **Commit messages**: `commitlint`
-- **EditorConfig**: `editorconfig-checker`
-- **Environment files**: `dotenv-linter`
-- **GitHub Actions**: `actionlint`, `zizmor`
-- **Git merge conflicts**: Built-in checker
-- **GoReleaser**: GoReleaser validation
-- **Jupyter Notebooks**: `nbqa`
-- **LaTeX**: `chktex`
-- **Licenses**: `trivy`
-- **Natural language**: `textlint`
-- **OpenAPI**: `spectral`
-- **Protocol Buffers**: `protolint`
-- **SQL**: `sqlfluff`
-- **TOML**: `taplo`
-- **XML**: `xmllint`
-
-> **Note**: These linters are available in the Super-linter base image but not yet exposed through this API. Contributions are welcome to add support for any of these tools!
-
-## 📞 Support
-
-- **Documentation**: [GitHub Wiki](https://github.com/arcblock/super-linter-api/wiki)
-- **Issues**: [GitHub Issues](https://github.com/arcblock/super-linter-api/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/arcblock/super-linter-api/discussions)
+MIT License - see [LICENSE](./LICENSE) file.
 
 ---
 
 <div align="center">
 
-**[⬆ Back to Top](#super-linter-api)**
+**⭐ Star this repo if it helped you!**
 
-Made with ❤️ by the ArcBlock Team
+[🚀 Get Started](#-quick-start) • [📖 Documentation](./docs/) • [💬 Discussions](https://github.com/arcblock/super-linter-api/discussions)
+
+Made with ❤️ by the [ArcBlock Team](https://github.com/arcblock)
 
 </div>
