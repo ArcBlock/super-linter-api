@@ -1,9 +1,21 @@
 const axios = require('axios');
 
-async function testBasicEndpoints() {
+async function testBasicEndpoints(baseUrl = null) {
+  // Support environment variables for API URL
+  const BASE_URL = baseUrl || 
+                   process.env.LINTER_API_URL || 
+                   process.env.API_URL || 
+                   process.env.BASE_URL || 
+                   'http://localhost:3000';
+
   console.log('🔧 Testing Fixed Phase 3 Endpoints\n');
-  
-  const BASE_URL = 'http://localhost:3000';
+  console.log(`🌐 Testing API at: ${BASE_URL}`);
+  if (process.env.LINTER_API_URL || process.env.API_URL) {
+    console.log(`📡 Using remote endpoint (from environment variable)`);
+  } else {
+    console.log(`🏠 Using local endpoint (default)`);
+  }
+  console.log();
   
   // Test 1: POST endpoint (should work with database)
   console.log('1. Testing POST /eslint/json endpoint...');
@@ -59,4 +71,9 @@ async function testBasicEndpoints() {
   console.log('\n📊 Fixed endpoints test complete!');
 }
 
-testBasicEndpoints().catch(console.error);
+// Run if called directly
+if (require.main === module) {
+  testBasicEndpoints().catch(console.error);
+}
+
+module.exports = { testBasicEndpoints };

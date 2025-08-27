@@ -179,7 +179,14 @@ function getFilename(language) {
   return extensions[language] || 'test.txt';
 }
 
-async function testLinter(linter) {
+async function testLinter(linter, baseUrl = null) {
+  // Support environment variables for API URL
+  const apiUrl = baseUrl || 
+                 process.env.LINTER_API_URL || 
+                 process.env.API_URL || 
+                 process.env.BASE_URL || 
+                 'http://localhost:3000';
+
   const testData = {
     content: generateTestContent(linter.language),
     filename: getFilename(linter.language),
@@ -198,7 +205,7 @@ async function testLinter(linter) {
     console.log(`📝 ${linter.description}`);
     console.log(`⏱️  Starting test...`);
 
-    const response = await axios.post(`http://localhost:3000/${linter.name}/json`, testData, {
+    const response = await axios.post(`${apiUrl}/${linter.name}/json`, testData, {
       headers: {
         'Content-Type': 'application/json'
       },
@@ -234,17 +241,29 @@ async function testLinter(linter) {
         console.log(`🔍 Details: ${error.response.data.details}`);
       }
     } else if (error.code === 'ECONNREFUSED') {
-      console.log(`🔌 Connection refused - is the server running on http://localhost:3000?`);
+      console.log(`🔌 Connection refused - is the server running on ${apiUrl}?`);
     } else {
       console.log(`💥 Error: ${error.message}`);
     }
   }
 }
 
-async function testAllLinters() {
+async function testAllLinters(baseUrl = null) {
+  // Support environment variables for API URL
+  const apiUrl = baseUrl || 
+                 process.env.LINTER_API_URL || 
+                 process.env.API_URL || 
+                 process.env.BASE_URL || 
+                 'http://localhost:3000';
+
   console.log(`🚀 Starting comprehensive linter testing...`);
   console.log(`🎯 Testing all ${linters.length} linters implemented in source code with random content to avoid caching`);
-  console.log(`🌐 Target: http://localhost:3000`);
+  console.log(`🌐 Target: ${apiUrl}`);
+  if (process.env.LINTER_API_URL || process.env.API_URL) {
+    console.log(`📡 Using remote endpoint (from environment variable)`);
+  } else {
+    console.log(`🏠 Using local endpoint (default)`);
+  }
   console.log(`📋 Languages covered: JS/TS (6), Python (6), Shell (1), Go (2), Ruby (1), Docker (1), YAML (1), JSON (1), Markdown (1), CSS (1)`);
   
   const startTime = Date.now();
@@ -253,7 +272,7 @@ async function testAllLinters() {
   
   for (const linter of linters) {
     try {
-      await testLinter(linter);
+      await testLinter(linter, apiUrl);
       successCount++;
     } catch (error) {
       failCount++;

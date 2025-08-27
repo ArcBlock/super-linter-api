@@ -478,9 +478,23 @@ console.log("hello");
 
 // Enhanced test runner for individual linters
 class LinterVerifier {
-  constructor(baseUrl = 'http://localhost:3000') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl = null) {
+    // Support multiple environment variables for flexibility
+    this.baseUrl = baseUrl || 
+                   process.env.LINTER_API_URL || 
+                   process.env.API_URL || 
+                   process.env.BASE_URL || 
+                   'http://localhost:3000';
+    
     this.results = [];
+    
+    // Log which URL we're using
+    console.log(`🌐 Testing API at: ${this.baseUrl}`);
+    if (process.env.LINTER_API_URL || process.env.API_URL) {
+      console.log(`📡 Using remote endpoint (from environment variable)`);
+    } else {
+      console.log(`🏠 Using local endpoint (default)`);
+    }
   }
 
   async testLinter(linterName, testConfig) {
