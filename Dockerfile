@@ -28,17 +28,27 @@ FROM ghcr.io/github/super-linter:slim-latest AS runtime
 # Install Node.js and pnpm on top of Super-linter
 USER root
 
-# Install Node.js 20, pnpm, oxlint, biome, and runtime dependencies with immediate cleanup
-RUN apk add --no-cache \
-    nodejs \
-    npm \
-    sqlite \
-    curl \
-    bash \
+# Install Node.js 20, pnpm, oxlint, biome, Ruby, and runtime dependencies with immediate cleanup
+# Preserve gofmt binary during the process
+RUN mkdir -p /opt/preserved && \
+    cp /usr/lib/go/bin/gofmt /opt/preserved/gofmt 2>/dev/null || cp /usr/bin/gofmt /opt/preserved/gofmt 2>/dev/null || true && \
+    apk add --no-cache \
+        nodejs \
+        npm \
+        sqlite \
+        curl \
+        bash \
+        ruby \
+        ruby-dev \
     && npm install -g pnpm@10.6.5 oxlint@latest @biomejs/biome@latest \
     && rm -rf /var/cache/apk/* \
               /root/.npm \
-              /tmp/*
+              /tmp/* \
+    && if [ -f "/opt/preserved/gofmt" ]; then \
+        cp /opt/preserved/gofmt /usr/bin/gofmt && \
+        chmod +x /usr/bin/gofmt; \
+    fi && \
+    rm -rf /opt/preserved
 
 # Create app directory
 WORKDIR /app
@@ -52,12 +62,11 @@ COPY --from=builder /app/scripts ./scripts
 RUN pnpm install --prod --frozen-lockfile && \
     pnpm store prune && \
     rm -rf /root/.pnpm-store /app/.pnpm /tmp/* && \
-    # Enhanced cleanup: Remove caches, docs, and temporary files
+    # Enhanced cleanup: Remove caches, docs, and temporary files (but preserve Go tools)
     rm -rf /var/cache/apk/* \
            /root/.npm \
            /root/.node-gyp \
            /var/tmp/* \
-           /usr/src/* \
            /usr/share/man \
            /usr/share/doc \
            /usr/share/info \

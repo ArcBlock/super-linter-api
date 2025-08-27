@@ -46,7 +46,7 @@ curl http://localhost:3000/
   "runtime": {
     "superlinter": true,
     "containerized": true,
-    "availableLinters": 16
+    "availableLinters": 18
   },
   "endpoints": {
     "health": "/health",

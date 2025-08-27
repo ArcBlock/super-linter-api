@@ -300,7 +300,7 @@ func main() {
     description: 'gofmt - Go code formatter',
     sampleCode: `package main
 
-import (
+import(
 "fmt"
 "os"
 )
@@ -310,8 +310,8 @@ unused:=42
 fmt.Println("hello world")
 }`,
     filename: 'main.go',
-    expectedIssues: ['formatting'],
-    minIssues: 0,
+    expectedIssues: ['diff', 'formatting'],
+    minIssues: 1,
     expectsFormatting: true
   },
 
@@ -320,14 +320,10 @@ fmt.Println("hello world")
     language: 'Ruby',
     description: 'RuboCop - Ruby style guide enforcer',
     sampleCode: `# RuboCop test
-class testClass
-  def test
-    unused=42
+class TestClass
+  def test_method
+    unused_var = 42
     puts "hello world"
-    return true
-  end
-  
-  def another_method
     x=1
     y=2
     return x+y
@@ -335,9 +331,9 @@ class testClass
 end`,
     filename: 'test.rb',
     expectedIssues: [
-      'Style/ClassAndModuleCamelCase',
       'Layout/SpaceAroundOperators',
-      'Lint/UselessAssignment'
+      'Lint/UselessAssignment',
+      'Style/RedundantReturn'
     ],
     minIssues: 2
   },

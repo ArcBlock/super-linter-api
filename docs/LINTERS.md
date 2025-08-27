@@ -1,6 +1,6 @@
 # Complete Linter Reference
 
-This document provides detailed information about all 21 configured linters in the Super-linter API.
+This document provides detailed information about all 23 configured linters in the Super-linter API.
 
 ## 📊 **Complete Linter Reference Table**
 
@@ -11,6 +11,7 @@ This document provides detailed information about all 21 configured linters in t
 | **black** | ✅ Available | 23.3.0 | Python | `.py` | Code formatting | 🚀🚀 Fast |
 | **eslint** | ✅ Available | 8.38.0 | JavaScript, TypeScript, Vue | `.js`, `.jsx`, `.ts`, `.tsx`, `.vue` | Traditional comprehensive linting | 🐢 Slower |
 | **flake8** | ✅ Available | 6.0.0 | Python | `.py` | Style guide enforcement | 🚀 Moderate |
+| **gofmt** | ✅ Available | 1.19.8 | Go | `.go` | Go code formatting | 🚀🚀🚀 Ultra-fast |
 | **golangci-lint** | ✅ Available | 1.52.2 | Go | `.go` | Comprehensive Go linting | 🚀🚀 Fast |
 | **hadolint** | ✅ Available | 2.12.1 | Docker | `Dockerfile`, `.dockerfile` | Dockerfile best practices | 🚀🚀 Fast |
 | **isort** | ✅ Available | 5.12.0 | Python | `.py` | Import sorting | 🚀🚀🚀 Ultra-fast |
@@ -19,20 +20,20 @@ This document provides detailed information about all 21 configured linters in t
 | **oxlint** | ✅ Available | 1.13.0 | JavaScript, TypeScript | `.js`, `.jsx`, `.ts`, `.tsx` | Ultra-fast linting | 🚀🚀🚀 Ultra-fast |
 | **prettier** | ✅ Available | 2.8.7 | JavaScript, TypeScript, JSON, Markdown, CSS | `.js`, `.jsx`, `.ts`, `.tsx`, `.json`, `.md`, `.css` | Code formatting | 🐌 Slower |
 | **pylint** | ✅ Available | 2.17.2 | Python | `.py` | Comprehensive analysis | 🐢 Slower |
+| **rubocop** | ✅ Available | 1.49.0 | Ruby | `.rb`, `.rake`, `.gemfile` | Ruby style guide enforcement | 🚀🚀 Fast |
 | **shellcheck** | ✅ Available | 0.9.0 | Shell Scripts | `.sh`, `.bash`, `.dash`, `.ksh` | Shell script analysis | 🚀🚀 Fast |
 | **stylelint** | ✅ Available | 15.5.0 | CSS, SCSS, Sass | `.css`, `.scss`, `.sass` | CSS linting | 🚀🚀 Fast |
 | **yamllint** | ✅ Available | 1.30.0 | YAML | `.yml`, `.yaml` | YAML validation | 🚀🚀 Fast |
 | **bandit** | ❌ Not Available | - | Python | `.py` | Security analysis | - |
-| **gofmt** | ❌ Not Available | - | Go | `.go` | Go formatting | - |
 | **jshint** | ❌ Not Available | - | JavaScript | `.js` | JavaScript quality tool | - |
 | **jsonlint** | ❌ Not Available | - | JSON | `.json` | JSON validation | - |
-| **rubocop** | ❌ Not Available | - | Ruby | `.rb`, `.rake`, `.gemfile` | Ruby style guide | - |
 
 ## 🎯 **Quick Language Reference**
 
 - **JavaScript/TypeScript** (5 linters): `biome`, `biome-lint`, `eslint`, `oxlint`, `prettier`
 - **Python** (5 linters): `black`, `flake8`, `isort`, `mypy`, `pylint` 
-- **Go** (1 linter): `golangci-lint`
+- **Go** (2 linters): `gofmt`, `golangci-lint`
+- **Ruby** (1 linter): `rubocop`
 - **Shell** (1 linter): `shellcheck`
 - **Docker** (1 linter): `hadolint`
 - **YAML** (1 linter): `yamllint`
@@ -41,8 +42,8 @@ This document provides detailed information about all 21 configured linters in t
 - **Multi-language** (1 linter): `prettier` (JS/TS/JSON/MD/CSS)
 
 ## 📈 **Availability Summary**
-- **✅ Available**: 16/21 linters (76% coverage)
-- **❌ Not Available**: 5/21 linters (missing from Super-linter slim base)
+- **✅ Available**: 18/21 linters (86% coverage)
+- **❌ Not Available**: 3/21 linters (missing from Super-linter slim base)
 
 ## 🔍 **Detailed Linter Information**
 
@@ -113,14 +114,32 @@ This document provides detailed information about all 21 configured linters in t
 - **Features**: Multiple checkers combined, plugin support
 - **API Usage**: `/flake8/json`
 
-### Other Language Linters
+### Go Linters
 
-#### golangci-lint (Go)
+#### gofmt
+- **Purpose**: Go code formatting
+- **Best for**: Consistent Go code formatting, CI/CD pipelines
+- **Performance**: ~50-200ms (ultra-fast)
+- **Features**: Standard Go formatting, import organization, syntax validation
+- **API Usage**: `/gofmt/json`
+
+#### golangci-lint
 - **Purpose**: Comprehensive Go linting
 - **Best for**: Go projects requiring multiple linters
 - **Performance**: ~500-2000ms (fast for Go)
 - **Features**: 40+ linters combined, configurable, parallel execution
 - **API Usage**: `/golangci-lint/json`
+
+### Ruby Linters
+
+#### RuboCop
+- **Purpose**: Ruby style guide enforcement and code analysis
+- **Best for**: Ruby projects following community standards
+- **Performance**: ~1-3 seconds (moderate speed)
+- **Features**: 400+ rules, auto-correction, configurable style guides
+- **API Usage**: `/rubocop/json`
+
+### Other Language Linters
 
 #### ShellCheck (Shell)
 - **Purpose**: Shell script analysis
@@ -162,10 +181,8 @@ This document provides detailed information about all 21 configured linters in t
 The following linters are configured but not available in the Super-linter slim base image:
 
 - **bandit**: Python security analysis
-- **gofmt**: Go code formatting  
 - **jshint**: JavaScript quality tool
 - **jsonlint**: JSON validation
-- **rubocop**: Ruby style guide enforcement
 
 These may be added in future versions or can be contributed by the community.
 
@@ -173,17 +190,17 @@ These may be added in future versions or can be contributed by the community.
 
 ### Ultra-Fast (< 500ms)
 Ideal for real-time feedback, development environments:
-- biome, biome-lint, oxlint, isort
+- biome, biome-lint, oxlint, isort, gofmt
 
 ### Fast (500ms - 1s)  
 Good for CI/CD, automated workflows:
 - black, golangci-lint, hadolint, shellcheck, stylelint, yamllint, markdownlint
 
-### Moderate (1-2s)
+### Moderate (1-3s)
 Suitable for detailed analysis, scheduled checks:
-- flake8, prettier
+- flake8, prettier, rubocop
 
-### Slower (2s+)
+### Slower (3s+)
 Best for comprehensive analysis, code quality gates:
 - eslint, pylint, mypy
 

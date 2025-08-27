@@ -7,7 +7,7 @@
 [![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://www.docker.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
-**🚀 One-command HTTP API for code linting with 16+ production-ready linters**
+**🚀 One-command HTTP API for code linting with 18+ production-ready linters**
 
 [Quick Start](#-quick-start) • [Live Demo](#-live-demo) • [API Docs](#-api-reference) • [Docker Hub](https://hub.docker.com/r/arcblock/super-linter-api)
 
@@ -17,7 +17,7 @@
 
 ## ✨ **What is Super-linter API?**
 
-A **production-ready HTTP API** that wraps 16+ popular code linters (ESLint, Prettier, Pylint, etc.) into a single Docker container. Start linting any codebase in **under 10 seconds** with a simple REST API.
+A **production-ready HTTP API** that wraps 18+ popular code linters (ESLint, Prettier, Pylint, gofmt, RuboCop, etc.) into a single Docker container. Start linting any codebase in **under 10 seconds** with a simple REST API.
 
 ```bash
 # Start the API (takes ~10 seconds)
@@ -32,7 +32,7 @@ curl -X POST http://localhost:3000/eslint/json \
 
 - **CI/CD Pipelines** - Fast, reliable linting in containers
 - **Code Review Tools** - Integrate linting into PR workflows
-- **Multi-language Projects** - One API for JavaScript, Python, Go, Docker, YAML, etc.
+- **Multi-language Projects** - One API for JavaScript, Python, Go, Ruby, Docker, YAML, etc.
 - **Microservices** - Centralized linting service for distributed teams
 
 ---
@@ -109,14 +109,15 @@ curl -X POST http://localhost:3000/oxlint/json \
 | ------------------------- | ---------------------------------- | -------------- | ----------------------------------------- |
 | **JavaScript/TypeScript** | ESLint, Oxlint, Biome, Prettier    | ✅ 5 available | Modern web development, React, Node.js    |
 | **Python**                | Pylint, Black, MyPy, isort, Flake8 | ✅ 5 available | Django, FastAPI, data science, automation |
-| **Go**                    | golangci-lint                      | ✅ 1 available | Microservices, CLI tools, backend APIs    |
+| **Go**                    | gofmt, golangci-lint               | ✅ 2 available | Microservices, CLI tools, backend APIs    |
+| **Ruby**                  | RuboCop                            | ✅ 1 available | Rails apps, Ruby gems, web backends       |
 | **Shell**                 | ShellCheck                         | ✅ 1 available | DevOps scripts, automation, Docker builds |
 | **Docker**                | Hadolint                           | ✅ 1 available | Container best practices, security        |
 | **YAML**                  | yamllint                           | ✅ 1 available | Kubernetes, CI/CD configs, Ansible        |
 | **Markdown**              | markdownlint                       | ✅ 1 available | Documentation, README files, blogs        |
 | **CSS**                   | stylelint                          | ✅ 1 available | Frontend styling, design systems          |
 
-**📈 Total: 16/21 linters available** • [View complete table →](./docs/LINTERS.md)
+**📈 Total: 18/21 linters available** • [View complete table →](./docs/LINTERS.md)
 
 ---
 
@@ -168,9 +169,11 @@ curl -X POST http://localhost:3000/eslint/json \
 
 | Linter     | Language | Speed                     | Best For                        |
 | ---------- | -------- | ------------------------- | ------------------------------- |
+| **gofmt**  | Go       | 🚀🚀🚀 Ultra-fast (50ms)  | Go code formatting              |
 | **Biome**  | JS/TS    | 🚀🚀🚀 Ultra-fast (200ms) | All-in-one formatting & linting |
 | **Oxlint** | JS/TS    | 🚀🚀🚀 Ultra-fast (150ms) | Fast feedback, CI/CD            |
 | **isort**  | Python   | 🚀🚀🚀 Ultra-fast (100ms) | Import organization             |
+| **RuboCop** | Ruby     | 🚀🚀 Fast (1-3s)         | Ruby style guide enforcement   |
 | **ESLint** | JS/TS    | 🐢 Slower (750ms)         | Legacy projects, complex rules  |
 | **Pylint** | Python   | 🐢 Slower (2000ms)        | Comprehensive analysis          |
 
