@@ -2,7 +2,7 @@
 # This provides all 50+ linters pre-installed and configured
 
 # Stage 1: Build stage for our Node.js API
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Install pnpm
 RUN npm install -g pnpm@10.6.5
