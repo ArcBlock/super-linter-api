@@ -1,35 +1,39 @@
 # Getting Started
 
-This guide provides the fastest way to get the Super-linter API running on your local machine using Docker. You'll pull the image, start the container, and make your first linting request in just a few minutes.
+This guide provides the fastest way to get the Super-linter API running on your machine using Docker. In just a few minutes, you'll pull the image, start the container, and make your first linting request to confirm everything is working.
 
-## Prerequisites
+### Prerequisites
 
 Before you begin, ensure you have [Docker](https://www.docker.com/) installed and running on your system.
 
-## Step 1: Run the API with Docker
+## Option 1: Run with Docker (Recommended)
 
-Open your terminal and run the following command to download and start the Super-linter API container. The first run might take a moment to pull the image from Docker Hub.
+This is the simplest and most reliable way to start the API.
+
+### Step 1: Run the API Container
+
+Open your terminal and execute the following command. This will download the latest image from Docker Hub and start it as a background service.
 
 ```bash
 docker run -d -p 3000:3000 --name linter-api arcblock/super-linter-api:latest
 ```
 
-This command does the following:
-- `docker run`: Starts a new container.
-- `-d`: Runs the container in detached mode (in the background).
-- `-p 3000:3000`: Maps port 3000 on your host machine to port 3000 inside the container.
-- `--name linter-api`: Assigns a convenient name to the container for easier management.
-- `arcblock/super-linter-api:latest`: Specifies the Docker image to use.
+This command performs the following actions:
+- `docker run`: Starts a new container from an image.
+- `-d`: Runs the container in detached mode, meaning it runs in the background.
+- `-p 3000:3000`: Maps port 3000 on your local machine to port 3000 inside the container, making the API accessible.
+- `--name linter-api`: Assigns a memorable name to the container for easier management (e.g., `docker stop linter-api`).
+- `arcblock/super-linter-api:latest`: Specifies the official Docker image and tag to use.
 
-## Step 2: Verify the API is Running
+### Step 2: Verify the API is Running
 
-Once the container is running, you can check its health with a simple `curl` request to the `/health` endpoint.
+To confirm that the container has started successfully and the API is healthy, send a request to the `/health` endpoint.
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-You should receive a response confirming that the service is healthy:
+You should receive a JSON response indicating the service is healthy:
 
 ```json
 {
@@ -54,13 +58,9 @@ You should receive a response confirming that the service is healthy:
       "eslint",
       "oxlint",
       "biome",
-      "biome-lint",
       "prettier",
       "pylint",
       "flake8",
-      "black",
-      "isort",
-      "mypy",
       "shellcheck",
       "golangci-lint",
       "hadolint",
@@ -73,40 +73,4 @@ You should receive a response confirming that the service is healthy:
 }
 ```
 
-The key field here is `"status": "healthy"`. If you see this, the API is ready to accept requests.
-
-## Step 3: Make Your First Linting Request
-
-Now, let's send a snippet of JavaScript code to the `eslint` linter to see it in action. The following command sends a string containing an unused variable.
-
-```bash
-curl -X POST http://localhost:3000/eslint/json \
-  -d "console.log('Hello'); var unused = 42;"
-```
-
-The API will process the code and return a JSON response detailing any issues found. The `no-unused-vars` error confirms that the linter is working correctly.
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "execution_time_ms": 245,
-  "issues": [
-    {
-      "file": "demo.js",
-      "line": 1,
-      "rule": "no-unused-vars",
-      "severity": "error",
-      "message": "'unused' is assigned a value but never used."
-    }
-  ]
-}
-```
-
-## Next Steps
-
-Congratulations, you have successfully set up and tested the Super-linter API. Now you are ready to explore more advanced use cases.
-
-- To learn how to analyze a complete codebase, see the [Lint a Full Project](./guides-lint-project.md) guide.
-- For a complete list of all available endpoints and options, consult the [API Reference](./api-reference.md).
+The `

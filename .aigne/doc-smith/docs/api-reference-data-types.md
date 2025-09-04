@@ -1,6 +1,6 @@
 # Data Types
 
-This page provides a detailed reference for the data structures used in the Super-linter API's requests and responses. Understanding these objects is key to building integrations and interpreting API results correctly.
+This page provides a detailed reference for the data structures used in the Super-linter API's requests and responses. Understanding these objects is essential for building integrations and interpreting API results correctly.
 
 ## Core Linting Objects
 

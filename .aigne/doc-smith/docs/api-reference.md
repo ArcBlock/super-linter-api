@@ -2,27 +2,87 @@
 
 This section provides a complete technical reference for the Super-linter API. Here you will find detailed information on every endpoint, the data structures used in requests and responses, and a comprehensive list of error codes to help you build robust integrations. Whether you are performing a simple linting task or building a complex CI/CD workflow, this reference is your definitive guide to interacting with the API.
 
-## API Architecture
+## Architecture Overview
 
-The following diagram illustrates the high-level architecture of the API, showing how client requests are processed for synchronous linting, asynchronous jobs, and monitoring.
+The API is designed to handle both immediate (synchronous) and long-running (asynchronous) linting tasks. Client requests are routed to the appropriate handler, which interacts with linter workers and a shared cache and database for job management and performance optimization.
 
-```mermaid
-graph TD
-    A["Client (CI/CD, SDK, curl)"] --> B{"Super-linter API"};
-    B -- "POST /{linter}/{format}" --> C["Synchronous Linting"];
-    B -- "POST /{linter}/{format}/async" --> D["Asynchronous Job System"];
-    D --> E["Job Queue"];
-    E --> F["Linter Workers"];
-    F --> G["Cache & Database"];
-    C --> G;
-    B -- "GET /jobs/{id}" --> D;
-    B -- "GET /metrics" --> H["Monitoring & Metrics"];
-    B -- "GET /linters" --> I["Linter Configuration"];
+```d2
+direction: down
+
+"Client (CI/CD, SDK, curl)": { 
+  shape: rectangle 
+}
+
+"Super-linter API": {
+    shape: package
+    grid-columns: 2
+
+    "Sync Linting": {
+        label: "POST /{linter}/{format}"
+        shape: rectangle
+    }
+    "Async Linting": {
+        label: "POST /{linter}/{format}/async"
+        shape: rectangle
+    }
+    "Job Management": {
+        label: "GET /jobs/{id}"
+        shape: rectangle
+    }
+    "Monitoring": {
+        label: "GET /metrics, /health"
+        shape: rectangle
+    }
+}
+
+"Job System": {
+    shape: package
+    "Job Queue": { shape: queue }
+    "Linter Workers": { shape: rectangle }
+    "Job Queue" -> "Linter Workers"
+}
+
+"Cache & Database": {
+    shape: cylinder
+}
+
+"Client (CI/CD, SDK, curl)" -> "Super-linter API"
+
+"Super-linter API"."Sync Linting" -> "Cache & Database"
+"Super-linter API"."Async Linting" -> "Job System"."Job Queue"
+"Job System"."Linter Workers" -> "Cache & Database"
+"Super-linter API"."Job Management" -> "Cache & Database"
+"Super-linter API"."Monitoring" -> "Cache & Database"
 ```
 
-## Endpoints
+## Core Components
 
-The API is organized around REST principles, providing a clear and predictable structure for interacting with the linting service. Below is a summary of the available endpoints, grouped by functionality. For complete details on parameters, request bodies, and example responses, see the full [Endpoints Reference](./api-reference-endpoints.md).
+Navigate to the detailed sections below to explore the API's components.
+
+<x-cards data-columns="3">
+  <x-card data-title="Endpoints" data-icon="lucide:server" data-href="/api-reference/endpoints" data-cta="View Endpoints">
+    A comprehensive list of all available API endpoints, detailing their methods, URL parameters, request bodies, and functionality.
+  </x-card>
+  <x-card data-title="Data Types" data-icon="lucide:database" data-href="/api-reference/data-types" data-cta="View Data Types">
+    Reference for all data structures used in API requests and responses, such as LinterOptions, LinterResult, and JobStatus objects.
+  </x-card>
+  <x-card data-title="Error Codes" data-icon="lucide:shield-alert" data-href="/api-reference/error-codes" data-cta="View Error Codes">
+    A dictionary of all possible error codes, their meanings, and the HTTP status they correspond to, ensuring robust error handling.
+  </x-card>
+</x-cards>
+
+## Base URL
+
+All API requests should be made to the following base URLs:
+
+```
+http://localhost:3000    # Local development
+https://your-domain.com  # Production deployment
+```
+
+## Endpoints at a Glance
+
+Here is a summary of all available endpoints for quick reference.
 
 | Endpoint                        | Method | Description          |
 | ------------------------------- | ------ | -------------------- |
@@ -36,40 +96,6 @@ The API is organized around REST principles, providing a clear and predictable s
 | `GET /metrics`                  | GET    | API metrics          |
 | `DELETE /cache`                 | DELETE | Clear cache          |
 
-
-## Data Types
-
-All requests and responses use standard JSON data structures. Understanding these structures is key to interacting with the API effectively. Common data types include options for configuring linter behavior, detailed issue reports, and job status objects. For a complete definition of every data type, including `LinterOptions`, `LintResponse`, and `JobStatusResponse`, please consult the [Data Types Reference](./api-reference-data-types.md).
-
-An example of the `options` object in a request body:
-```json
-{
-  "options": {
-    "validate_all": false,
-    "exclude_patterns": ["node_modules/**"],
-    "timeout": 30000,
-    "fix": false,
-    "rules": {
-      "no-console": "warn"
-    }
-  }
-}
-```
-
-## Error Codes
-
-The API uses a standardized format for all error responses to ensure consistent and predictable error handling. All error responses include a `success: false` flag and an `error` object containing a unique `code` and a human-readable `message`. Below is a table of common error codes. For a complete list and detailed explanations, visit the [Error Codes Reference](./api-reference-error-codes.md).
-
-| Code                      | HTTP Status | Description                   |
-| ------------------------- | ----------- | ----------------------------- |
-| `VALIDATION_ERROR`        | 400         | Invalid request parameters    |
-| `INVALID_PARAMETERS`      | 400         | Invalid linter or format      |
-| `JOB_NOT_FOUND`           | 404         | Job ID not found              |
-| `TIMEOUT_ERROR`           | 408         | Request timeout               |
-| `RATE_LIMIT_EXCEEDED`     | 429         | Too many requests             |
-| `LINTER_EXECUTION_FAILED` | 500         | Linter execution error        |
-| `INTERNAL_SERVER_ERROR`   | 500         | Server error                  |
-
 ---
 
-Now that you have an overview of the API's structure, the best place to start is the detailed [Endpoints Reference](./api-reference-endpoints.md).
+To begin making requests, proceed to the detailed [Endpoints Reference](./api-reference-endpoints.md).

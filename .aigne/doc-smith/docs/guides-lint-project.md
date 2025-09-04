@@ -8,13 +8,39 @@ This approach allows you to send a complete project context in a single, efficie
 
 The process can be visualized as a simple pipeline from your local project directory to the API:
 
-```mermaid
-flowchart TD
-    A["Your Local Project"] -->|"`tar czf - .`"| B["Compressed Archive Stream"];
-    B -->|"`base64 -w 0`"| C["Base64 Encoded String"];
-    C --> D["POST request with archive"];
-    D --> E["Super-linter API Server"];
-    E --> F["Linting Results (JSON)"];
+```d2
+direction: down
+
+"Your Local Project": {
+  shape: rectangle
+}
+
+"Compressed Archive Stream": {
+  shape: document
+}
+
+"Base64 Encoded String": {
+  shape: document
+}
+
+"POST request with archive": {
+  shape: rectangle
+}
+
+"Super-linter API Server": {
+  shape: cylinder
+}
+
+"Linting Results (JSON)": {
+  shape: document
+}
+
+"Your Local Project" -> "Compressed Archive Stream": "`tar czf - .`"
+"Compressed Archive Stream" -> "Base64 Encoded String": "`base64 -w 0`"
+"Base64 Encoded String" -> "POST request with archive"
+"POST request with archive" -> "Super-linter API Server"
+"Super-linter API Server" -> "Linting Results (JSON)"
+
 ```
 
 ### Step-by-Step Guide

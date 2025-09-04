@@ -183,4 +183,4 @@ def my_function():
         print(e)
 ```
 
-These SDK examples provide a solid foundation for integrating the Super-linter API into your projects. To see how they can be used in more specific scenarios, see our guide on how to [Integrate with CI/CD](./guides-ci-cd-integration.md).
+These SDK examples provide a solid foundation for integrating the Super-linter API into your projects. To see how they can be used in a real-world automation scenario, review the guide on how to [Integrate with CI/CD](./guides-ci-cd-integration.md).

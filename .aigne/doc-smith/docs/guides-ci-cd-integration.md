@@ -4,6 +4,60 @@ Automating code quality checks within your Continuous Integration/Continuous Dep
 
 This guide provides a complete example using GitHub Actions to demonstrate how to integrate the API into a typical CI process.
 
+### CI/CD Integration Flow
+
+The following diagram illustrates the typical workflow when the Super-linter API is integrated into a CI/CD pipeline.
+
+```d2
+direction: down
+
+"Developer": { shape: person }
+"CI/CD Platform": {
+  shape: package
+  grid-columns: 1
+
+  "Trigger": {
+    label: "1. Push/PR Trigger"
+    shape: oval
+  }
+  "Job Runner": {
+    shape: rectangle
+    "2. Start Job Runner"
+    "Linter API Service": {
+      label: "3. Start Linter API Service"
+      shape: rectangle
+      style.fill: "#f0f8ff"
+    }
+    "Checkout Code": {
+      label: "4. Checkout Code"
+      shape: document
+    }
+    "Lint Step": {
+      label: "5. Lint Project via API Call"
+      shape: step
+    }
+    "Process Result": {
+      label: "7. Process API Response"
+      shape: step
+    }
+  }
+  "Outcome": {
+    label: "8. Pass/Fail"
+    shape: diamond
+  }
+}
+
+"Developer" -> "CI/CD Platform"."Trigger": "git push"
+"CI/CD Platform"."Trigger" -> "CI/CD Platform"."Job Runner"
+"CI/CD Platform"."Job Runner"."Lint Step" -> "CI/CD Platform"."Job Runner"."Linter API Service": "6. POST /{linter}/{format}" {
+  style {
+    stroke-dash: 2
+  }
+}
+"CI/CD Platform"."Job Runner"."Linter API Service" -> "CI/CD Platform"."Job Runner"."Process Result": "JSON Result"
+"CI/CD Platform"."Job Runner"."Process Result" -> "CI/CD Platform"."Outcome"
+```
+
 ### GitHub Actions Workflow Example
 
 The following workflow definition can be added to your repository (e.g., at `.github/workflows/code-quality.yml`). It sets up the linter API as a service, checks out the code, and then sends the entire project to the API for analysis.
@@ -47,6 +101,14 @@ Let's break down the key components of this workflow file:
     *   **`Lint JavaScript`**: This is the core step where the linting is performed.
         *   `tar czf - . | base64 -w 0`: This command sequence packages the entire project directory (`.`) into a compressed `tar.gz` archive and then base64-encodes the result. This allows you to send a complete project context in a single API request.
         *   `curl ...`: The `curl` command sends the base64-encoded archive in a POST request to the `/eslint/json` synchronous linting endpoint.
-        *   `jq ...`: The script uses `jq`, a command-line JSON processor, to parse the API's response. It checks the `success` field. If the linting process fails or finds issues, the script prints the reported issues and exits with a status code of `1`, which causes the CI job to fail as expected.
+        *   `jq ...`: The script uses `jq`, a command-line JSON processor, to parse the API's response. It checks the `success` field. If the linting process finds issues, the script prints the reported issues and exits with a status code of `1`, which causes the CI job to fail as expected.
 
-This pattern provides a robust way to enforce code quality standards automatically. For more details on submitting project archives, see the [Lint a Full Project](./guides-lint-project.md) guide. To explore all available endpoints and options, refer to the [API Reference](./api-reference.md).
+### Adapting for Other Systems
+
+While this example uses GitHub Actions, the same principles apply to other CI/CD systems like GitLab CI, Jenkins, or CircleCI. The core steps remain the same:
+
+1.  **Run the Service**: Launch the `arcblock/super-linter-api:latest` Docker image as a service accessible to your job runners.
+2.  **Make the API Call**: From a script step, package your code and send an HTTP POST request to the service's address.
+3.  **Process the Response**: Parse the JSON response to check for success or failure and print any reported issues to the job logs.
+
+This pattern provides a robust way to enforce code quality standards automatically. For more details on submitting project archives, see the [Lint a Full Project](./guides-lint-project.md) guide. To explore all available endpoints and options, refer to the [API Reference](./api-reference-endpoints.md).

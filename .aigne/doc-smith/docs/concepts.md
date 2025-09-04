@@ -4,51 +4,79 @@ To use the Super-linter API effectively, it's helpful to understand its fundamen
 
 Each component is designed to provide a reliable, scalable, and performant linting service. The following diagram illustrates how they work together to process a typical request.
 
-```mermaid
-flowchart TD
-    subgraph "API Service"
-        A["User Request (POST /lint)"] --> B["Job Manager"];
-        B -- "Create Job Record" --> DB["fa:fa-database Database"];
-        B -- "Check Cache" --> C["Cache Service"];
-        C -- "Cache Miss" --> D{"Create Workspace?"};
-        C -- "Cache Hit" --> E["Return Cached Result"];
-        D -- "Yes" --> F["Workspace Manager"];
-        F -- "Temp Directory" --> G["Linter Runner"];
-        G -- "Spawn Process" --> H["Linter Executable"];
-        H -- "Output (stdout/stderr)" --> G;
-        G -- "Parsed Result" --> I{"Store in Cache?"};
-        I -- "Yes" --> C;
-        I -- "Result" --> J["Update Job Record"];
-        E -- "Result" --> J;
-        J -- "Status: completed" --> DB;
-    end
+```d2
+direction: down
 
-    A -- "Receives Job ID / Result" --> B
+"API Service": {
+  shape: package
+  grid-columns: 1
+
+  "User Request": {
+    label: "User Request (POST /lint)"
+    shape: rectangle
+  }
+
+  "Job Manager": {
+    shape: rectangle
+  }
+
+  "Database": {
+    shape: cylinder
+  }
+
+  "Cache Service": {
+    shape: rectangle
+  }
+
+  "Workspace Manager": {
+    shape: rectangle
+  }
+
+  "Linter Runner": {
+    shape: rectangle
+  }
+
+  "Linter Executable": {
+    shape: rectangle
+  }
+
+  "User Request" -> "Job Manager"
+  "Job Manager" -> "Database": "1. Create Job Record"
+  "Job Manager" -> "Cache Service": "2. Check Cache"
+  
+  "Cache Service" -> "Job Manager": {
+    label: "3a. Cache Hit: Return Result"
+    style.stroke: "#52c41a"
+  }
+
+  "Cache Service" -> "Workspace Manager": {
+    label: "3b. Cache Miss: Create Workspace"
+    style.stroke: "#faad14"
+  }
+
+  "Workspace Manager" -> "Linter Runner": "4. Provide Workspace Path"
+  "Linter Runner" -> "Linter Executable": "5. Spawn Linter Process"
+  "Linter Executable" -> "Linter Runner": "6. Return Output"
+  "Linter Runner" -> "Cache Service": "7. Store Result"
+  "Linter Runner" -> "Job Manager": "8. Return Result"
+
+  "Job Manager" -> "Database": "9. Update Job Record"
+
+}
+
 ```
 
-### Linting Execution
-
-The core of the service is its ability to execute linters against provided source code in a secure and isolated environment. When a request is processed, the API creates a temporary workspace, populates it with your code, and invokes the appropriate linter executable. It then captures and parses the output into a standardized JSON format, detailing any issues found.
-
-This process involves handling various linters, managing timeouts, and ensuring that the execution environment is clean and secure for every run.
-
-[Learn more about Linting Execution &raquo;](./concepts-linting-execution.md)
-
-### Asynchronous Jobs
-
-Linting an entire project can take time. To avoid long-running HTTP requests and provide a more robust experience, the API operates on an asynchronous job model. When you submit a linting request, the service immediately accepts it, creates a job, and returns a unique `job_id`.
-
-You can then use this ID to poll for the job's status and retrieve the results once it's complete. This architecture allows the system to manage a queue of tasks efficiently, handle concurrency, and provide a non-blocking interface for clients.
-
-[Learn more about Asynchronous Jobs &raquo;](./concepts-async-jobs.md)
-
-### Caching Layer
-
-To optimize performance and reduce redundant computations, the API includes a powerful caching layer. Before executing a linter, it calculates a unique hash based on both the content of your code and the specific linter options you've configured.
-
-If an identical request has been processed before, the cached result is returned instantly, saving significant time and resources. This is particularly effective in CI/CD environments where the same code is often linted repeatedly.
-
-[Learn more about the Caching Layer &raquo;](./concepts-caching.md)
+<x-cards data-columns="3">
+  <x-card data-title="Linting Execution" data-icon="lucide:play-circle" data-href="/concepts/linting-execution">
+    The core of the service is its ability to execute linters against source code in a secure, isolated environment. This process involves creating a temporary workspace, invoking the linter, managing timeouts, and parsing the output into a standardized format.
+  </x-card>
+  <x-card data-title="Asynchronous Jobs" data-icon="lucide:clock" data-href="/concepts/async-jobs">
+    To handle potentially long-running tasks without blocking clients, the API uses an asynchronous job model. Requests are queued, and a job ID is returned for status tracking, allowing for efficient management of concurrent tasks.
+  </x-card>
+  <x-card data-title="Caching Layer" data-icon="lucide:database" data-href="/concepts/caching">
+    To optimize performance, the API includes a powerful caching layer. It generates a unique hash from the code content and linter options, returning cached results instantly for identical requests to save time and resources.
+  </x-card>
+</x-cards>
 
 ---
 

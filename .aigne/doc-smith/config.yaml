@@ -1,7 +1,7 @@
 # Project information for documentation publishing
 projectName: Super Linter
 projectDesc: A comprehensive HTTP API wrapper for code linting built on top of super-linter that supports manage languages
-projectLogo: https://avatars.githubusercontent.com/u/33216411?v=4
+projectLogo: https://store.blocklet.dev/assets/z2qaFxywNVpSSCWmLcMmUBhGWTBNK4rzVsn7U/logo.png
 
 # =============================================================================
 # Documentation Configuration
@@ -69,5 +69,5 @@ sourcesPath:  # Source code paths to analyze
   - ./docs
   - ./scripts/test-*.js
 lastGitHead: 230d68a622b964da7f65ac85877caf4c270fa77a
-appUrl: "https://docsmith.aigne.io"
+appUrl: https://docsmith.aigne.io
 boardId: "super-linter"

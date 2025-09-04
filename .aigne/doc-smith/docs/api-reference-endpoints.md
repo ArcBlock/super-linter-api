@@ -27,11 +27,12 @@ curl http://localhost:3000/
   "runtime": {
     "superlinter": true,
     "containerized": true,
-    "availableLinters": 18
+    "availableLinters": 16
   },
   "endpoints": {
     "health": "/health",
     "linters": "/linters",
+    "metrics": "/metrics",
     "lint_sync": "/{linter}/{format}",
     "lint_async": "/{linter}/{format}/async",
     "job_status": "/jobs/{id}"
@@ -69,7 +70,7 @@ curl http://localhost:3000/health
     "linters": true
   },
   "linters": {
-    "total": 21,
+    "total": 25,
     "available_count": 16,
     "available": [
       "eslint",
@@ -126,7 +127,7 @@ curl http://localhost:3000/linters
       "default_timeout_ms": 30000
     }
   ],
-  "total_count": 21,
+  "total_count": 25,
   "available_count": 16,
   "supported_formats": ["json", "text", "sarif"]
 }
@@ -382,8 +383,9 @@ curl http://localhost:3000/metrics
   "jobs": {
     "pending": 2,
     "running": 1,
-    "completed_last_24h": 234,
-    "failed_last_24h": 12,
+    "completed": 234,
+    "failed": 12,
+    "cancelled": 5,
     "running_jobs": [
       {
         "job_id": "job_123",
@@ -449,7 +451,7 @@ curl http://localhost:3000/cache/stats
     "session_stats": {
         "hits": 50,
         "misses": 10,
-        "hit_rate": 0.8333
+        "hit_rate": 0.8333333333333334
     }
 }
 ```

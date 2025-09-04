@@ -1,20 +1,20 @@
 # Configuration
 
-The Super-linter API is configured using environment variables. This allows you to adapt the service's behavior to different environments (development, staging, production) without changing the code. You can control aspects such as the server port, logging verbosity, and rate limiting policies.
+The Super-linter API is configured using environment variables. This approach allows you to adapt the service's behavior to different environments—such as development, staging, and production—without changing the underlying code. You can control aspects like the server port, logging verbosity, rate limiting policies, and workspace directories.
 
 ## Key Configuration Variables
 
-Below is a comprehensive list of the environment variables used to configure the application.
+Below is a comprehensive list of the environment variables used to configure the application. These are read at startup to define the runtime behavior of the service.
 
-| Variable                  | Description                                                                 | Default Value                                   |
-| ------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
-| `PORT`                    | The network port on which the server will listen for incoming requests.       | `3000`                                          |
-| `NODE_ENV`                | The application's operating environment. Affects logging and rate limits.   | `development`                                   |
-| `LOG_LEVEL`               | Sets the minimum level for logs to be recorded (e.g., `debug`, `info`, `warn`). | `info`                                          |
-| `DEFAULT_WORKSPACE`       | The base directory for creating temporary workspaces for linting jobs.      | The operating system's default temporary directory. |
-| `RATE_LIMIT_WINDOW_MS`    | The time window for the rate limiter in milliseconds.                       | `900000` (15 minutes)                           |
-| `RATE_LIMIT_MAX_REQUESTS` | The maximum number of requests allowed per IP address within the time window. | `100` (for `production`), `1000` (for `development`) |
-| `RATE_LIMIT_MESSAGE`      | The custom message returned to the client when the rate limit is exceeded.  | `Too many requests, please try again later`     |
+| Variable | Description | Default Value |
+| :--- | :--- | :--- |
+| `PORT` | The network port on which the server will listen for incoming requests. | `3000` |
+| `NODE_ENV` | The application's operating environment. Affects logging and rate limits. Can be `development` or `production`. | `development` |
+| `LOG_LEVEL` | Sets the minimum level for logs to be recorded. Options include `error`, `warn`, `info`, `debug`. | `info` |
+| `DEFAULT_WORKSPACE` | The base directory for creating temporary workspaces for linting jobs. | The operating system's default temporary directory. |
+| `RATE_LIMIT_WINDOW_MS` | The time window for the rate limiter in milliseconds. | `900000` (15 minutes) |
+| `RATE_LIMIT_MAX_REQUESTS` | The maximum number of requests allowed per IP address within the time window. | `100` (in `production`), `1000` (in `development`) |
+| `RATE_LIMIT_MESSAGE` | The custom message returned to the client when the rate limit is exceeded. | `Too many requests, please try again later` |
 
 ## How to Apply Configuration
 
@@ -22,7 +22,7 @@ You can set these variables using various methods depending on your deployment s
 
 ### Example: Docker CLI
 
-When running the service directly with Docker, you can pass environment variables using the `-e` flag.
+When running the service directly with Docker, you can pass environment variables using the `-e` or `--env` flag.
 
 ```bash
 docker run -d -p 8080:3000 \
@@ -32,6 +32,7 @@ docker run -d -p 8080:3000 \
   -e RATE_LIMIT_MAX_REQUESTS=250 \
   arcblock/super-linter-api:latest
 ```
+
 This command starts the API in `production` mode on port 3000 (exposed on the host as port 8080), sets the log level to `warn`, and allows 250 requests per 15 minutes.
 
 ### Example: Docker Compose
@@ -51,6 +52,7 @@ services:
       - RATE_LIMIT_WINDOW_MS=60000
       - RATE_LIMIT_MAX_REQUESTS=100
 ```
+
 This configuration starts the service in production mode and configures the rate limiter to allow 100 requests per minute.
 
 ---

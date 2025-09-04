@@ -8,58 +8,88 @@ The main goal is to simplify code quality automation. Instead of managing multip
 
 The API acts as a central gateway for all linting requests. A client, such as a CI/CD job or a code editor plugin, sends a code snippet or a project archive to a specific endpoint. The API server receives the request, runs the corresponding linter in an isolated environment, and returns the results in a standardized format.
 
-```mermaid
-flowchart TD
-    subgraph "Your Environment"
-        A["CI/CD Pipeline"]
-        B["Code Review Tool"]
-        C["Developer's Machine"]
-    end
+```d2
+direction: down
 
-    subgraph "Super-linter API (Docker Container)"
-        D["HTTP Server"]
-        E{{"Linter Orchestrator"}}
-        F["ESLint"]
-        G["Pylint"]
-        H["gofmt"]
-        I["...and 15+ more"]
-    end
+"Clients" : {
+  shape: package
+  grid-columns: 3
+  "CI/CD Pipeline": { shape: rectangle }
+  "Code Review Tool": { shape: rectangle }
+  "Developer Machine": { shape: rectangle }
+}
 
-    J["Linting Results (JSON, Text, SARIF)"]
+"API Container": {
+  label: "Super-linter API (Docker Container)"
+  shape: package
+  grid-columns: 1
 
-    A -- "POST /{linter}/{format}" --> D
-    B -- "POST /{linter}/{format}" --> D
-    C -- "POST /{linter}/{format}" --> D
-    D --> E
-    E -- "Runs appropriate linter" --> F
-    E -- "Runs appropriate linter" --> G
-    E -- "Runs appropriate linter" --> H
-    F -- "Output" --> E
-    G -- "Output" --> E
-    H -- "Output" --> E
-    E -- "Formats response" --> D
-    D -- "HTTP 200 OK" --> J
+  "HTTP Server": {
+    label: "HTTP Server"
+    shape: rectangle
+  }
+  
+  "Linter Orchestrator": {
+    shape: hexagon
+  }
+  
+  "Linters": {
+    shape: package
+    grid-columns: 4
+    "ESLint": { shape: document }
+    "Pylint": { shape: document }
+    "gofmt": { shape: document }
+    "...15+ more": { shape: document }
+  }
+  
+  "HTTP Server" -> "Linter Orchestrator": "Routes request"
+  "Linter Orchestrator" -> "Linters": "Runs specific linter"
+  "Linters" -> "Linter Orchestrator": "Returns raw output"
+  "Linter Orchestrator" -> "HTTP Server": "Formats response"
+}
+
+"Standardized Results": {
+  label: "JSON, Text, or SARIF"
+  shape: multiple_document
+}
+
+"Clients" -> "API Container"."HTTP Server": "POST /{linter}/{format}"
+"API Container"."HTTP Server" -> "Standardized Results": "HTTP 200 OK"
 ```
 
 ## Key Features
 
-- **Multi-Linter Support**: Access 18+ linters for a wide range of languages through a single API.
-- **Simple Deployment**: Runs as a single Docker container. Get started with `docker run`.
-- **Synchronous & Asynchronous Linting**: Choose between immediate feedback for small snippets or background jobs for large codebases.
-- **Flexible Inputs**: Send code as plain text, a JSON payload, or a base64-encoded `.tar.gz` archive for full project analysis.
-- **Standardized Outputs**: Receive linting results in consistent `json`, `text`, or `sarif` formats, regardless of the linter used.
-- **Built for Automation**: Ideal for integration into CI/CD pipelines, code review tools, and microservice architectures.
+<x-cards data-columns="3">
+  <x-card data-title="Multi-Linter Support" data-icon="lucide:library">
+    Access 18+ linters for a wide range of languages through a single API.
+  </x-card>
+  <x-card data-title="Simple Deployment" data-icon="lucide:box">
+    Runs as a single Docker container. Get started with a `docker run` command.
+  </x-card>
+  <x-card data-title="Flexible Modes" data-icon="lucide:git-compare-arrows">
+    Choose between immediate synchronous feedback or background asynchronous jobs for large codebases.
+  </x-card>
+  <x-card data-title="Versatile Inputs" data-icon="lucide:file-input">
+    Send code as plain text, a JSON payload, or a base64-encoded `.tar.gz` archive for full project analysis.
+  </x-card>
+  <x-card data-title="Standardized Outputs" data-icon="lucide:file-output">
+    Receive results in consistent JSON, text, or SARIF formats, regardless of the linter used.
+  </x-card>
+  <x-card data-title="Built for Automation" data-icon="lucide:bot">
+    Ideal for integration into CI/CD pipelines, code review tools, and microservice architectures.
+  </x-card>
+</x-cards>
 
 ## Common Use Cases
 
 Super-linter API is designed for scenarios where consistent and fast code quality checks are essential.
 
-| Use Case | Description |
-|---|---|
-| **CI/CD Pipelines** | Add a fast, reliable linting step to your build and deployment workflows without installing multiple language toolchains on your runners. |
-| **Code Review Tools** | Integrate with automated systems that check pull requests for style and quality issues, providing instant feedback to developers. |
-| **Multi-language Projects** | Use one consistent API to lint a repository containing code in JavaScript, Python, Go, and YAML. |
-| **Microservices** | Provide a centralized linting service for development teams to ensure code quality standards across a distributed architecture. |
+| Use Case                  | Description                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **CI/CD Pipelines**       | Add a fast, reliable linting step to your build and deployment workflows without installing multiple language toolchains on your runners. |
+| **Code Review Tools**     | Integrate with automated systems that check pull requests for style and quality issues, providing instant feedback to developers.       |
+| **Multi-language Projects** | Use one consistent API to lint a repository containing code in JavaScript, Python, Go, and YAML.                                       |
+| **Microservices**         | Provide a centralized linting service for development teams to ensure code quality standards across a distributed architecture.         |
 
 ## Example: Linting JavaScript
 

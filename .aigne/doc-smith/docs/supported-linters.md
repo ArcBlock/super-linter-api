@@ -258,4 +258,4 @@ The following linters are defined in the configuration but are not currently ava
 - **jshint**: A quality tool for JavaScript.
 - **jsonlint**: A validator for JSON files.
 
-These may be added in future updates. For details on how to make requests to the available linters, please see the [API Reference](./api-reference-endpoints.md).
+These may be added in future updates. For details on how to make requests to the available linters, please see the [API Endpoints](./api-reference-endpoints.md) reference.

@@ -8,16 +8,55 @@ This system manages a queue of tasks, processes them in the background, and pers
 
 A job progresses through several distinct states from submission to completion. The following diagram illustrates the typical lifecycle of an asynchronous linting job.
 
-```mermaid
-flowchart TD
-    A["Job Submitted via POST"] -- "Status: pending" --> B{"Job Queue"};
-    B -- "Worker available" --> C["Processing Start"];
-    C -- "Status: running" --> D{"Linter Execution"};
-    D -- "Success" --> E["Completed"];
-    D -- "Error or Timeout" --> F["Failed"];
-    B -- "DELETE /jobs/{id}" --> G["Cancelled"];
-    C -- "DELETE /jobs/{id}" --> G;
-    D -- "DELETE /jobs/{id}" --> G;
+```d2
+direction: down
+
+submitting: {
+  shape: oval
+  label: "Job Submitted via POST"
+}
+
+queue: {
+  shape: queue
+  label: "Job Queue"
+}
+
+processing: {
+  shape: rectangle
+  label: "Processing Start"
+}
+
+execution: {
+  shape: rectangle
+  label: "Linter Execution"
+}
+
+completed: {
+  shape: oval
+  label: "Completed"
+  style.fill: "#d4edda"
+}
+
+failed: {
+  shape: oval
+  label: "Failed"
+  style.fill: "#f8d7da"
+}
+
+cancelled: {
+  shape: oval
+  label: "Cancelled"
+  style.fill: "#fff3cd"
+}
+
+submitting -> queue: "Status: pending"
+queue -> processing: "Worker available"
+processing -> execution: "Status: running"
+execution -> completed: "Success"
+execution -> failed: "Error or Timeout"
+queue -> cancelled: "DELETE /jobs/{id}"
+processing -> cancelled: "DELETE /jobs/{id}"
+execution -> cancelled: "DELETE /jobs/{id}"
 ```
 
 | Status | Description |
@@ -150,34 +189,40 @@ If you attempt to cancel a job that has already finished, the API will respond w
 
 Behind the scenes, the `JobManager` orchestrates the entire process. The following diagram shows the sequence of events after a job is submitted.
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API
-    participant JobManager
-    participant Database
-    participant Cache
-    participant LinterRunner
+```d2
+direction: down
 
-    Client->>API: POST /.../async
-    API->>JobManager: submitJob(request)
-    JobManager->>Database: Create job record (status: 'pending')
-    JobManager-->>API: Return new job_id
-    API-->>Client: 202 Accepted { job_id: ... }
+Client: { shape: person }
+API: { shape: rectangle }
+JobManager: { shape: rectangle }
+Database: { shape: cylinder }
+Cache: { shape: cylinder }
+LinterRunner: { shape: rectangle }
 
-    Note over JobManager: Process job asynchronously
-    JobManager->>Database: Update status to 'running'
-    JobManager->>Cache: Check for cached result
-    alt Cache Miss
-        JobManager->>LinterRunner: runLinter(...)
-        LinterRunner-->>JobManager: Linter Result
-        JobManager->>Cache: Store result
-        JobManager->>Database: Update status to 'completed' with result
-    else Cache Hit
-        JobManager->>Database: Update status to 'completed' with cached result
-    end
+Client -> API: "1. POST /.../async"
+API -> JobManager: "2. submitJob(request)"
+JobManager -> Database: "3. Create job record (status: 'pending')"
+JobManager -> API: "4. Return new job_id"
+API -> Client: "5. 202 Accepted { job_id: ... }"
+
+AsyncProcessing: "Process job asynchronously" {
+  style.stroke-dash: 2
+  JobManager -> Database: "6. Update status to 'running'"
+  JobManager -> Cache: "7. Check for cached result"
+
+  alt: "Cache Miss" {
+    JobManager -> LinterRunner: "8a. runLinter(...)"
+    LinterRunner -> JobManager: "9a. Linter Result"
+    JobManager -> Cache: "10a. Store result"
+    JobManager -> Database: "11a. Update status to 'completed' with result"
+  }
+
+  alt: "Cache Hit" {
+    JobManager -> Database: "8b. Update status to 'completed' with cached result"
+  }
+}
 ```
 
-This flow ensures that jobs are handled reliably, with state persisted in a database and performance optimized through the [Caching Layer](./concepts-caching.md). Server-side configurations like maximum concurrent jobs and job timeouts further ensure system stability.
+This flow ensures that jobs are handled reliably, with state persisted in a database and performance optimized through the [Caching Layer](./concepts-caching.md). System stability is further ensured by server-side configurations like maximum concurrent jobs and job timeouts.
 
 For more details on specific endpoints, see the [API Reference](./api-reference-endpoints.md).
