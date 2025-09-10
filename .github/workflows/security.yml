@@ -169,7 +169,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: 🔒 Run Hadolint (Dockerfile linter)
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.2.0
         with:
           dockerfile: ${{ matrix.dockerfile }}
           format: sarif
