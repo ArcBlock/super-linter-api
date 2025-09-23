@@ -57,6 +57,8 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/configs ./configs
+
 
 # Install ONLY production dependencies (no devDependencies)
 RUN pnpm install --prod --frozen-lockfile && \
@@ -78,10 +80,11 @@ RUN pnpm install --prod --frozen-lockfile && \
 RUN addgroup -g 1002 -S apiuser && \
     adduser -S apiuser -u 1002 -G apiuser && \
     mkdir -p data data/workspace && \
+    cp -r /app/configs /app/data/workspace && \
     chown -R apiuser:apiuser /app && \
     # Ensure files are readable by group for flexible user mounting
     chmod -R g+r /app && \
-    chmod g+x /app /app/dist /app/scripts
+    chmod g+x /app /app/dist /app/scripts /app/configs
 
 # Copy and set permissions for entrypoint script in single operation
 COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
