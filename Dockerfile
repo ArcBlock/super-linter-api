@@ -80,11 +80,11 @@ RUN pnpm install --prod --frozen-lockfile && \
 RUN addgroup -g 1002 -S apiuser && \
     adduser -S apiuser -u 1002 -G apiuser && \
     mkdir -p data data/workspace && \
-    cp -r /app/configs /app/data/workspace && \
+    cp -r /app/configs/* data/workspace && \
     chown -R apiuser:apiuser /app && \
     # Ensure files are readable by group for flexible user mounting
     chmod -R g+r /app && \
-    chmod g+x /app /app/dist /app/scripts /app/configs
+    chmod g+x /app /app/dist /app/scripts
 
 # Copy and set permissions for entrypoint script in single operation
 COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
