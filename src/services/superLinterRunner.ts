@@ -32,13 +32,13 @@ const SUPERLINTER_CONFIGS = {
   },
   biome: {
     executable: 'biome',
-    args: ['format', '--reporter=json'],
+    args: ['format', '--reporter=json', '--config-path=/app/configs/biome.json'],
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
   },
   'biome-lint': {
     executable: 'biome',
-    args: ['lint', '--reporter=json'],
+    args: ['lint', '--reporter=json', '--config-path=/app/configs/biome.json'],
     outputFormat: 'json',
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
   },
@@ -221,7 +221,7 @@ module.exports = {
       return super.runLinter(execution);
     }
 
-    logger.info(`Running Super-linter: ${linter}`, { workspace_path, linter });
+    logger.info(`Running Super-linter: ${linter}`, { workspace_path, linter, config });
 
     // Create ESLint config if needed
     if (linter === 'eslint') {

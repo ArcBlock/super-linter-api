@@ -7,6 +7,7 @@ export interface LinterConfig {
   env_vars: Record<string, string>;
   supported_extensions: string[];
   config_files: string[];
+  config_file?: string;
   output_parsers: {
     json?: (output: string) => any;
     text?: (output: string) => any;
@@ -56,6 +57,8 @@ export interface WorkspaceInfo {
   cleanup_at: string;
 }
 
+const DEFAULT_BIOME_CONFIG_PATH = process.env.BIOME_CONFIG_PATH || '/app/configs/biome.json';
+
 export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
   eslint: {
     name: 'eslint',
@@ -92,6 +95,7 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
     env_vars: {},
     supported_extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     config_files: ['biome.json', 'biome.jsonc'],
+    config_file: DEFAULT_BIOME_CONFIG_PATH,
     output_parsers: {
       json: output => JSON.parse(output),
       text: output => output,
@@ -106,6 +110,7 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
     env_vars: {},
     supported_extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     config_files: ['biome.json', 'biome.jsonc'],
+    config_file: DEFAULT_BIOME_CONFIG_PATH,
     output_parsers: {
       json: output => JSON.parse(output),
       text: output => output,
