@@ -7,6 +7,7 @@ export interface LinterConfig {
   env_vars: Record<string, string>;
   supported_extensions: string[];
   config_files: string[];
+  config_file?: string;
   output_parsers: {
     json?: (output: string) => any;
     text?: (output: string) => any;
@@ -92,6 +93,7 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
     env_vars: {},
     supported_extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     config_files: ['biome.json', 'biome.jsonc'],
+    config_file: '/app/configs/biome.json',
     output_parsers: {
       json: output => JSON.parse(output),
       text: output => output,
@@ -106,6 +108,7 @@ export const LINTER_CONFIGS: Record<LinterType, LinterConfig> = {
     env_vars: {},
     supported_extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     config_files: ['biome.json', 'biome.jsonc'],
+    config_file: '/app/configs/biome.json',
     output_parsers: {
       json: output => JSON.parse(output),
       text: output => output,

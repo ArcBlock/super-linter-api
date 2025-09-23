@@ -243,14 +243,20 @@ export class LinterRunner {
       }
     }
 
+    const configFile = options.config_file || config.config_file;
+
     // Add config file if specified
-    if (options.config_file) {
+    if (configFile) {
       switch (config.name) {
         case 'eslint':
-          args.push('--config', options.config_file);
+          args.push('--config', configFile);
           break;
         case 'pylint':
-          args.push('--rcfile', options.config_file);
+          args.push('--rcfile', configFile);
+          break;
+        case 'biome':
+        case 'biome-lint':
+          args.push('--config-path', configFile);
           break;
         // Add more linter-specific config flags as needed
       }

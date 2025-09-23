@@ -80,7 +80,6 @@ RUN pnpm install --prod --frozen-lockfile && \
 RUN addgroup -g 1002 -S apiuser && \
     adduser -S apiuser -u 1002 -G apiuser && \
     mkdir -p data data/workspace && \
-    cp -r /app/configs/* data/workspace && \
     chown -R apiuser:apiuser /app && \
     # Ensure files are readable by group for flexible user mounting
     chmod -R g+r /app && \
